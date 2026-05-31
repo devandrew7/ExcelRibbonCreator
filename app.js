@@ -10,6 +10,148 @@ let ribbonState = {
 };
 
 let selectedElement = null; // { type: 'tab'|'group'|'control'|'separator', path: [tabIdx, grpIdx, ctrlIdx] }
+
+// --- Predefined VBA Actions Presets ---
+const VBA_PRESETS = [
+    {
+        id: "protect_sheet",
+        label: "🔒 시트 보호 및 해제 토글",
+        description: "현재 시트를 암호('1234')로 잠그거나 보호 해제하는 토글 동작을 수행합니다.",
+        code: `Sub %ACTION_NAME%(control As IRibbonControl)
+    Dim ws As Worksheet
+    Set ws = ActiveSheet
+    
+    On Error GoTo ErrHandler
+    If ws.ProtectContents Then
+        ws.Unprotect Password:="1234"
+        MsgBox "시트 보호가 성공적으로 해제되었습니다.", vbInformation, "엑셀 리본 빌더"
+    Else
+        ws.Protect Password:="1234", AllowFiltering:=True, AllowFormattingCells:=True
+        MsgBox "시트가 암호('1234')로 성공적으로 보호되었습니다.", vbInformation, "엑셀 리본 빌더"
+    End If
+    Exit Sub
+ErrHandler:
+    MsgBox "에러가 발생했습니다: " & Err.Description, vbCritical, "오류"
+End Sub`
+    },
+    {
+        id: "export_pdf",
+        label: "📄 선택 영역 PDF로 내보내기",
+        description: "현재 마우스로 드래그 선택한 영역을 즉시 고품질 PDF 문서로 내보내어 저장합니다.",
+        code: `Sub %ACTION_NAME%(control As IRibbonControl)
+    Dim savePath As Variant
+    Dim targetRange As Range
+    
+    Set targetRange = Selection
+    If targetRange Is Nothing Then
+        MsgBox "선택 영역이 없습니다. 영역을 드래그한 뒤 실행해 주세요.", vbExclamation, "엑셀 리본 빌더"
+        Exit Sub
+    End If
+    
+    savePath = Application.GetSaveAsFilename( _
+        InitialFileName:="선택영역_출력_" & Format(Now, "yyyymmdd_hhnnss"), _
+        FileFilter:="PDF Files (*.pdf), *.pdf", _
+        Title:="PDF 파일로 저장할 위치 지정")
+        
+    If savePath <> False Then
+        On Error GoTo ErrHandler
+        targetRange.ExportAsFixedFormat _
+            Type:=xlTypePDF, _
+            Filename:=savePath, _
+            Quality:=xlQualityStandard, _
+            IncludeDocProperties:=True, _
+            IgnorePrintAreas:=False, _
+            OpenAfterPublish:=True
+        MsgBox "성공적으로 PDF 파일이 생성되었습니다.", vbInformation, "엑셀 리본 빌더"
+    End If
+    Exit Sub
+ErrHandler:
+    MsgBox "PDF 생성 중 에러가 발생했습니다: " & Err.Description, vbCritical, "오류"
+End Sub`
+    },
+    {
+        id: "autofit_columns",
+        label: "↔️ 열 너비 및 행 높이 자동 맞춤",
+        description: "현재 활성화된 전체 시트 데이터 영역의 모든 열 너비와 행 높이를 자동으로 적정 크기로 맞춥니다.",
+        code: `Sub %ACTION_NAME%(control As IRibbonControl)
+    On Error Resume Next
+    Application.ScreenUpdating = False
+    
+    With ActiveSheet.UsedRange
+        .Columns.AutoFit
+        .Rows.AutoFit
+    End With
+    
+    Application.ScreenUpdating = True
+    MsgBox "선택한 시트의 전체 열 너비와 행 높이를 자동 조정했습니다.", vbInformation, "엑셀 리본 빌더"
+End Sub`
+    },
+    {
+        id: "remove_duplicates",
+        label: "🗑️ 선택 영역 중복 데이터 일괄 제거",
+        description: "선택한 표 데이터 영역 내에서 첫 번째 열 기준 중복 값을 제거하고 고유 값만 남깁니다.",
+        code: `Sub %ACTION_NAME%(control As IRibbonControl)
+    Dim targetRange As Range
+    Set targetRange = Selection
+    
+    If targetRange.Cells.Count <= 1 Then
+        MsgBox "중복을 제거할 표 영역을 드래그 선택해 주세요.", vbExclamation, "엑셀 리본 빌더"
+        Exit Sub
+    End If
+    
+    On Error GoTo ErrHandler
+    targetRange.RemoveDuplicates Columns:=1, Header:=xlYes
+    MsgBox "선택한 데이터 범위에서 첫 번째 열 기준 중복된 데이터를 지우고 고유 값만 남겼습니다.", vbInformation, "엑셀 리본 빌더"
+    Exit Sub
+ErrHandler:
+    MsgBox "중복값 제거 처리 중 에러: " & Err.Description, vbCritical, "오류"
+End Sub`
+    },
+    {
+        id: "merge_sheets",
+        label: "📑 여러 워크시트 데이터 일괄 취합",
+        description: "현재 통합 문서 내의 모든 시트에 들어 있는 데이터를 하나의 시트로 긁어모아 일괄 취합합니다.",
+        code: `Sub %ACTION_NAME%(control As IRibbonControl)
+    Dim ws As Worksheet
+    Dim mergeWs As Worksheet
+    Dim nextRow As Long
+    Dim lastRow As Long
+    Dim isFirst As Boolean
+    
+    On Error GoTo ErrHandler
+    Application.ScreenUpdating = False
+    
+    ' "통합취합데이터" 시트 생성
+    Set mergeWs = Worksheets.Add(Before:=Worksheets(1))
+    mergeWs.Name = "통합취합데이터_" & Format(Now, "hhnnss")
+    isFirst = True
+    
+    For Each ws In ActiveWorkbook.Worksheets
+        If ws.Name <> mergeWs.Name Then
+            lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+            If lastRow > 1 Then
+                If isFirst Then
+                    ' 헤더포함 복사
+                    ws.Rows("1:" & lastRow).Copy mergeWs.Range("A1")
+                    isFirst = False
+                Else
+                    ' 데이터만 복사
+                    nextRow = mergeWs.Cells(mergeWs.Rows.Count, "A").End(xlUp).Row + 1
+                    ws.Rows("2:" & lastRow).Copy mergeWs.Range("A" & nextRow)
+                End If
+            End If
+        End If
+    Next ws
+    
+    Application.ScreenUpdating = True
+    MsgBox "모든 워크시트의 데이터를 취합 완료했습니다! 새 시트를 확인하세요.", vbInformation, "엑셀 리본 빌더"
+    Exit Sub
+ErrHandler:
+    Application.ScreenUpdating = True
+    MsgBox "데이터 취합 중 오류가 발생했습니다: " & Err.Description, vbCritical, "오류"
+End Sub`
+    }
+];
 let currentIconTargetControl = null;
 let currentIconSourceTab = "mso"; // "mso", "emoji"
 
@@ -185,6 +327,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Bind click / input events
     bindEvents();
     
+    // Initialize VBA Preset Library UI
+    initVbaLibraryUI();
+    
 // Setup first dynamic folder keys
     if (typeof ICONS_MAP !== 'undefined') {
         const level1Keys = Object.keys(ICONS_MAP);
@@ -206,6 +351,47 @@ document.addEventListener("DOMContentLoaded", () => {
     // Build Icon Grid inside picker
     buildIconPickerGrid();
 });
+
+// --- Predefined VBA Preset Library UI Initialization ---
+function initVbaLibraryUI() {
+    const container = document.getElementById("vba-preset-buttons-container");
+    const viewer = document.getElementById("library-vba-viewer");
+    
+    if (!container || !viewer) return;
+    
+    container.innerHTML = "";
+    VBA_PRESETS.forEach((preset) => {
+        const btn = document.createElement("button");
+        btn.className = "btn-secondary vba-preset-btn";
+        btn.style.textAlign = "left";
+        btn.style.padding = "6px 10px";
+        btn.style.fontSize = "11px";
+        btn.style.whiteSpace = "nowrap";
+        btn.style.overflow = "hidden";
+        btn.style.textOverflow = "ellipsis";
+        btn.style.width = "100%";
+        btn.style.justifyContent = "flex-start";
+        btn.innerHTML = preset.label;
+        btn.title = preset.description;
+        
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".vba-preset-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            
+            // Format generic function name for representation (e.g. ProtectSheet)
+            const cleanActionName = preset.id.replace(/_([a-z])/g, (g) => g[1].toUpperCase()) + "_Click";
+            const codeToShow = preset.code.replace(/%ACTION_NAME%/g, cleanActionName);
+            viewer.value = codeToShow;
+        });
+        
+        container.appendChild(btn);
+    });
+    
+    // Select first preset by default
+    if (VBA_PRESETS.length > 0 && container.children.length > 0) {
+        container.children[0].click();
+    }
+}
 
 // --- 3. Event Binders ---
 function bindEvents() {
@@ -261,13 +447,37 @@ function bindEvents() {
         });
     });
 
-    // Copy XML / VBA
+    // Copy XML / VBA / Preset Library VBA
     document.getElementById("copy-xml").addEventListener("click", () => copyCode("code-xml-box", "copy-xml"));
     document.getElementById("copy-vba").addEventListener("click", () => copyCode("code-vba-box", "copy-vba"));
+    
+    const copyLibraryBtn = document.getElementById("copy-library-vba");
+    if (copyLibraryBtn) {
+        copyLibraryBtn.addEventListener("click", () => copyCode("library-vba-viewer", "copy-library-vba"));
+    }
 
-    // File packaging export triggers
-    document.getElementById("btn-export-xlsm").addEventListener("click", () => exportExcelFile("xlsm"));
-    document.getElementById("btn-export-xlam").addEventListener("click", () => exportExcelFile("xlam"));
+    // File packaging export triggers (Safely bind in case button is missing)
+    const xlsmBtn = document.getElementById("btn-export-xlsm");
+    if (xlsmBtn) xlsmBtn.addEventListener("click", () => exportExcelFile("xlsm"));
+    const xlamBtn = document.getElementById("btn-export-xlam");
+    if (xlamBtn) xlamBtn.addEventListener("click", () => exportExcelFile("xlam"));
+
+    // Collapsible Notice card
+    const warningCard = document.getElementById("warning-callout-card");
+    const warningContent = document.getElementById("warning-callout-content");
+    const warningArrow = document.getElementById("warning-toggle-arrow");
+    if (warningCard && warningContent && warningArrow) {
+        warningCard.addEventListener("click", () => {
+            const isHidden = warningContent.style.display === "none";
+            if (isHidden) {
+                warningContent.style.display = "block";
+                warningArrow.style.transform = "rotate(180deg)";
+            } else {
+                warningContent.style.display = "none";
+                warningArrow.style.transform = "rotate(0deg)";
+            }
+        });
+    }
 
     // Selected Property Panel inputs live tracking
     bindPropertyFields();
@@ -287,25 +497,53 @@ function bindEvents() {
             buildIconPickerGrid();
         });
     });
-
-    // Guide accordion
-    const guideHeaders = document.querySelectorAll(".guide-step-header");
-    guideHeaders.forEach(header => {
-        header.addEventListener("click", () => {
-            const card = header.closest(".guide-step-card");
-            const isActive = card.classList.contains("active");
-            document.querySelectorAll(".guide-step-card").forEach(c => c.classList.remove("active"));
-            if (!isActive) {
-                card.classList.add("active");
-            }
-        });
-    });
 }
 
-// --- 4. State & View Setup ---
+function initializeControlVbaProperties(ctrl) {
+    if (ctrl.type === 'separator' || ctrl.type === 'labelcontrol') return;
+    
+    if (!ctrl.onAction) {
+        if (ctrl.type === 'checkbox') ctrl.onAction = ctrl.id + "_Click";
+        else if (ctrl.type === 'editbox') ctrl.onAction = ctrl.id + "_Change";
+        else if (['combobox', 'dropdown'].includes(ctrl.type)) ctrl.onAction = ctrl.id + "_Change";
+        else ctrl.onAction = ctrl.id + "_Click";
+    }
+
+    if (!ctrl.vbaCustomCode) {
+        let defaultCode = "";
+        if (ctrl.type === 'checkbox') {
+            defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl, pressed As Boolean)\n    MsgBox "체크 상태 변경: " & pressed, vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
+        } else if (ctrl.type === 'editbox') {
+            defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl, text As String)\n    MsgBox "입력된 텍스트: " & text, vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
+        } else if (['combobox', 'dropdown'].includes(ctrl.type)) {
+            defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl, textOrId As String, Optional index As Integer)\n    MsgBox "선택된 값: " & textOrId, vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
+        } else if (ctrl.type === 'togglebutton') {
+            defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl, pressed As Boolean)\n    MsgBox "토글 상태: " & pressed, vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
+        } else {
+            defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl)\n    MsgBox "${ctrl.label || '기능'}을 실행합니다.", vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
+        }
+        ctrl.vbaCustomCode = defaultCode;
+        ctrl.vbaPresetId = ""; // default as Custom
+    }
+}
+
 function loadState(state) {
     ribbonState = state;
     selectedElement = null;
+    
+    // Auto initialize VBA properties for loaded demo presets
+    ribbonState.tabs.forEach(tab => {
+        if (tab.groups) {
+            tab.groups.forEach(group => {
+                if (group.controls) {
+                    group.controls.forEach(ctrl => {
+                        initializeControlVbaProperties(ctrl);
+                    });
+                }
+            });
+        }
+    });
+
     if (ribbonState.tabs.length > 0) {
         selectedElement = { type: 'tab', path: [0] };
     }
@@ -818,6 +1056,7 @@ function addNewControlToSpecificGroup(type, tabIdx, grpIdx) {
         control = { id: `btn_Custom_${newIdx}`, type: type, label: `${type === 'togglebutton' ? '토글 버튼' : '새 버튼'} ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Top Speed.svg", onAction: `btn_Custom_${newIdx}_Click`, enabled: true, visible: true, checked: false };
     }
 
+    initializeControlVbaProperties(control);
     group.controls.push(control);
     selectedElement = { type: 'control', path: [tabIdx, grpIdx, group.controls.length - 1] };
     updateRibbonUI();
@@ -957,6 +1196,7 @@ function insertNewControlAtPosition(type, tabIdx, grpIdx, destCtrlIdx) {
         control = { id: `btn_Custom_${newIdx}`, type: type, label: `${type === 'togglebutton' ? '토글 버튼' : '새 버튼'} ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Top Speed.svg", onAction: `btn_Custom_${newIdx}_Click`, enabled: true, visible: true, checked: false };
     }
 
+    initializeControlVbaProperties(control);
     group.controls.splice(destCtrlIdx, 0, control);
     selectedElement = { type: 'control', path: [tabIdx, grpIdx, destCtrlIdx] };
     updateRibbonUI();
@@ -1255,6 +1495,24 @@ function renderPropertyEditor() {
                 ${sizeMarkup}
                 ${iconMarkup}
                 ${extraFields}
+                
+                <!-- VBA Code Connector & Textarea Editor -->
+                <div class="vba-connect-section">
+                    <div class="vba-connect-left">
+                        <label>VBA 코드 프리셋 연결</label>
+                        <select id="prop-ctrl-vba-preset" style="width: 100%;">
+                            <option value="" ${!ctrl.vbaPresetId ? 'selected' : ''}>사용자 정의 (직접 작성)</option>
+                            ${VBA_PRESETS.map(preset => `<option value="${preset.id}" ${ctrl.vbaPresetId === preset.id ? 'selected' : ''}>${preset.label}</option>`).join('')}
+                        </select>
+                        <div style="font-size: 10px; color: var(--text-secondary); margin-top: 4px; line-height: 1.35;">
+                            프리셋을 선택하면 동작 매크로 코드가 오른쪽에 자동 연결됩니다.
+                        </div>
+                    </div>
+                    <div class="vba-connect-right">
+                        <label>연결된 VBA 실행 코드 편집</label>
+                        <textarea id="prop-ctrl-vba-code" placeholder="Sub %ACTION_NAME%(control As IRibbonControl)..." spellcheck="false" style="width: 100%;">${ctrl.vbaCustomCode || ''}</textarea>
+                    </div>
+                </div>
             </div>
         `;
 
@@ -1315,7 +1573,51 @@ function bindPropertyFields() {
             const ctrl = ribbonState.tabs[path[0]].groups[path[1]].controls[path[2]];
             if (targetId === "prop-ctrl-id") ctrl.id = e.target.value;
             if (targetId === "prop-ctrl-label") ctrl.label = e.target.value;
-            if (targetId === "prop-ctrl-onaction") ctrl.onAction = e.target.value;
+            if (targetId === "prop-ctrl-onaction") {
+                const oldAction = ctrl.onAction || "";
+                const newAction = e.target.value;
+                ctrl.onAction = newAction;
+                if (ctrl.vbaCustomCode && oldAction) {
+                    try {
+                        const regex = new RegExp('Sub\\s+' + oldAction + '\\b', 'g');
+                        ctrl.vbaCustomCode = ctrl.vbaCustomCode.replace(regex, 'Sub ' + newAction);
+                    } catch (err) {
+                        console.error("VBA rename sync failed", err);
+                    }
+                }
+                const codeArea = document.getElementById("prop-ctrl-vba-code");
+                if (codeArea) {
+                    codeArea.value = ctrl.vbaCustomCode || "";
+                }
+            }
+            if (targetId === "prop-ctrl-vba-preset") {
+                const presetId = e.target.value;
+                ctrl.vbaPresetId = presetId;
+                if (presetId) {
+                    const preset = VBA_PRESETS.find(p => p.id === presetId);
+                    if (preset) {
+                        const actionName = ctrl.onAction || (ctrl.id + "_Click");
+                        ctrl.vbaCustomCode = preset.code.replace(/%ACTION_NAME%/g, actionName);
+                    }
+                }
+                const codeArea = document.getElementById("prop-ctrl-vba-code");
+                if (codeArea) {
+                    codeArea.value = ctrl.vbaCustomCode || "";
+                }
+                renderRibbonSimulator();
+                compileCodes();
+                return;
+            }
+            if (targetId === "prop-ctrl-vba-code") {
+                ctrl.vbaCustomCode = e.target.value;
+                ctrl.vbaPresetId = ""; // Custom
+                const presetSelect = document.getElementById("prop-ctrl-vba-preset");
+                if (presetSelect) {
+                    presetSelect.value = "";
+                }
+                compileCodes();
+                return;
+            }
             if (targetId === "prop-ctrl-text") ctrl.text = e.target.value;
             
             if (targetId === "prop-ctrl-checked") {
@@ -1533,31 +1835,35 @@ function compileVbaCallbacks() {
                         if (generatedActions.has(ctrl.onAction)) return;
                         generatedActions.add(ctrl.onAction);
 
-                        if (ctrl.type === 'checkbox') {
-                            vba += `' ${ctrl.label} (체크박스 변경 시 실행)\n`;
-                            vba += `Sub ${ctrl.onAction}(control As IRibbonControl, pressed As Boolean)\n`;
-                            vba += `    MsgBox "체크 상태 변경: " & pressed, vbInformation, "엑셀 리본 빌더"\n`;
-                            vba += `End Sub\n\n`;
-                        } else if (ctrl.type === 'editbox') {
-                            vba += `' ${ctrl.label} (텍스트 값 변경 시 실행)\n`;
-                            vba += `Sub ${ctrl.onAction}(control As IRibbonControl, text As String)\n`;
-                            vba += `    MsgBox "입력된 텍스트: " & text, vbInformation, "엑셀 리본 빌더"\n`;
-                            vba += `End Sub\n\n`;
-                        } else if (['combobox', 'dropdown'].includes(ctrl.type)) {
-                            vba += `' ${ctrl.label} (선택값 변경 시 실행)\n`;
-                            vba += `Sub ${ctrl.onAction}(control As IRibbonControl, textOrId As String, Optional index As Integer)\n`;
-                            vba += `    MsgBox "선택된 값: " & textOrId, vbInformation, "엑셀 리본 빌더"\n`;
-                            vba += `End Sub\n\n`;
-                        } else if (ctrl.type === 'togglebutton') {
-                            vba += `' ${ctrl.label} (토글 상태 변경 시 실행)\n`;
-                            vba += `Sub ${ctrl.onAction}(control As IRibbonControl, pressed As Boolean)\n`;
-                            vba += `    MsgBox "토글 상태: " & pressed, vbInformation, "엑셀 리본 빌더"\n`;
-                            vba += `End Sub\n\n`;
+                        if (ctrl.vbaCustomCode) {
+                            vba += ctrl.vbaCustomCode + "\n\n";
                         } else {
-                            vba += `' ${ctrl.label} 버튼 클릭 콜백\n`;
-                            vba += `Sub ${ctrl.onAction}(control As IRibbonControl)\n`;
-                            vba += `    MsgBox "${ctrl.label} 기능을 실행합니다.", vbInformation, "엑셀 리본 빌더"\n`;
-                            vba += `End Sub\n\n`;
+                            if (ctrl.type === 'checkbox') {
+                                vba += `' ${ctrl.label} (체크박스 변경 시 실행)\n`;
+                                vba += `Sub ${ctrl.onAction}(control As IRibbonControl, pressed As Boolean)\n`;
+                                vba += `    MsgBox "체크 상태 변경: " & pressed, vbInformation, "엑셀 리본 빌더"\n`;
+                                vba += `End Sub\n\n`;
+                            } else if (ctrl.type === 'editbox') {
+                                vba += `' ${ctrl.label} (텍스트 값 변경 시 실행)\n`;
+                                vba += `Sub ${ctrl.onAction}(control As IRibbonControl, text As String)\n`;
+                                vba += `    MsgBox "입력된 텍스트: " & text, vbInformation, "엑셀 리본 빌더"\n`;
+                                vba += `End Sub\n\n`;
+                            } else if (['combobox', 'dropdown'].includes(ctrl.type)) {
+                                vba += `' ${ctrl.label} (선택값 변경 시 실행)\n`;
+                                vba += `Sub ${ctrl.onAction}(control As IRibbonControl, textOrId As String, Optional index As Integer)\n`;
+                                vba += `    MsgBox "선택된 값: " & textOrId, vbInformation, "엑셀 리본 빌더"\n`;
+                                vba += `End Sub\n\n`;
+                            } else if (ctrl.type === 'togglebutton') {
+                                vba += `' ${ctrl.label} (토글 상태 변경 시 실행)\n`;
+                                vba += `Sub ${ctrl.onAction}(control As IRibbonControl, pressed As Boolean)\n`;
+                                vba += `    MsgBox "토글 상태: " & pressed, vbInformation, "엑셀 리본 빌더"\n`;
+                                vba += `End Sub\n\n`;
+                            } else {
+                                vba += `' ${ctrl.label} 버튼 클릭 콜백\n`;
+                                vba += `Sub ${ctrl.onAction}(control As IRibbonControl)\n`;
+                                vba += `    MsgBox "${ctrl.label} 기능을 실행합니다.", vbInformation, "엑셀 리본 빌더"\n`;
+                                vba += `End Sub\n\n`;
+                            }
                         }
                     });
                 }
@@ -1802,9 +2108,11 @@ async function exportExcelFile(type = 'xlsm') {
     
     try {
         const btn = document.getElementById(type === 'xlsm' ? "btn-export-xlsm" : "btn-export-xlam");
-        const origText = btn.innerHTML;
-        btn.innerHTML = `⚙ 빌드 패키징 중...`;
-        btn.disabled = true;
+        const origText = btn ? btn.innerHTML : "";
+        if (btn) {
+            btn.innerHTML = `⚙ 빌드 패키징 중...`;
+            btn.disabled = true;
+        }
 
         const blob = await ExcelZipGenerator.generate(xml, type);
         
@@ -1818,11 +2126,13 @@ async function exportExcelFile(type = 'xlsm') {
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            btn.innerHTML = `✓ 내보내기 완료!`;
-            btn.disabled = false;
+            if (btn) {
+                btn.innerHTML = `✓ 내보내기 완료!`;
+                btn.disabled = false;
+            }
             
             setTimeout(() => {
-                btn.innerHTML = origText;
+                if (btn) btn.innerHTML = origText;
             }, 1800);
         }, 100);
 

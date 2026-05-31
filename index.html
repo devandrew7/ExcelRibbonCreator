@@ -28,7 +28,7 @@
                 <div class="excel-logo-icon">X</div>
                 <div>
                     <h1>Excel Custom Ribbon Creator</h1>
-                    <p>노코딩 기반 엑셀 맞춤형 리본 메뉴 및 추가기능(XLAM) 생성기</p>
+                    <p>노코딩 기반 엑셀 맞춤형 리본 메뉴 및 추가기능 생성기</p>
                 </div>
             </div>
             <div class="header-actions">
@@ -169,6 +169,25 @@
                     </div>
                 </div>
 
+                <!-- Predefined VBA Actions Library (Central Bottom Section) -->
+                <div class="vba-library-container" style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px;">
+                    <div style="font-weight: 700; font-size: 12px; color: var(--excel-green-primary); display: flex; align-items: center; gap: 6px;">
+                        <span>📋 자주 사용하는 VBA 매크로 라이브러리</span>
+                        <span style="font-size: 10px; color: var(--text-secondary); font-weight: normal;">(원하는 동작을 클릭해 코드를 복사하거나 속성 편집창에서 선택해 연결할 수 있습니다)</span>
+                    </div>
+                    <div class="vba-library-layout" style="display: flex; gap: 12px; height: 130px;">
+                        <!-- Left: Preset Buttons Grid -->
+                        <div class="vba-library-left" id="vba-preset-buttons-container" style="flex: 1; display: grid; grid-template-columns: 1fr; gap: 4px; overflow-y: auto; padding-right: 4px;">
+                            <!-- Rendered by JS -->
+                        </div>
+                        <!-- Right: Selected Preset Code Viewer -->
+                        <div class="vba-library-right" style="flex: 1.5; display: flex; flex-direction: column; gap: 4px; position: relative; border: 1px solid var(--border-color); border-radius: 4px; background-color: #fafafa; overflow: hidden;">
+                            <button class="copy-btn" id="copy-library-vba" style="top: 4px; right: 4px; padding: 3px 6px; font-size: 9.5px;">📋 코드 복사</button>
+                            <textarea class="code-box" id="library-vba-viewer" readonly style="height: 100%; border: none; padding: 8px; font-size: 10.5px; line-height: 1.35; resize: none; background: transparent;"></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Centralized Codes Output Container -->
                 <div class="code-container">
                     <div class="tabs-container">
@@ -207,74 +226,41 @@
                         <button class="btn-primary" id="btn-export-xlsm" style="width:100%; justify-content:center; padding: 10px; font-size:12px;">
                             📥 리본 메뉴 주입 빈 .xlsm 다운로드
                         </button>
-                        <button class="btn-primary" id="btn-export-xlam" style="width:100%; justify-content:center; padding: 10px; font-size:12px; background: linear-gradient(to bottom, var(--excel-green-accent), var(--excel-green-dark));">
-                            📥 리본 메뉴 주입 추가기능 .xlam 다운로드
-                        </button>
                     </div>
 
-                    <!-- Korea Step Guide Accordion -->
-                    <div class="guide-accordion">
-                        <div style="padding: 8px 12px; font-weight:700; font-size:11.5px; border-bottom:1px solid var(--border-color); color:var(--excel-green-primary); background-color:#f8f8f8;">
-                            📚 엑셀 리본 메뉴 적용 가이드 (초보자용)
+                    <!-- Single Box Apply Guide -->
+                    <div class="guide-box-single" style="border: 1px solid var(--border-color); border-radius: 4px; background-color: #ffffff; padding: 12px; font-size: 11px; line-height: 1.5; color: var(--text-secondary); display:flex; flex-direction:column; gap:10px; box-shadow: var(--shadow-sm);">
+                        <div style="font-weight: 700; color: var(--excel-green-primary); margin-bottom: 2px; font-size: 11.5px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">
+                            📚 엑셀 리본 메뉴 적용 가이드
                         </div>
-                        
-                        <!-- Step 1 -->
-                        <div class="guide-step-card active">
-                            <div class="guide-step-header">
-                                <span>1단계: 웹에서 내보내기 & 복사</span>
-                                <span>▼</span>
-                            </div>
-                            <div class="guide-step-content">
-                                좌측에서 탭과 버튼들을 조합한 뒤, <strong>[리본 메뉴 주입 빈 .xlsm 다운로드]</strong>를 클릭해 가상 엑셀 파일을 다운로드합니다. 이와 함께 오른쪽 <strong>[VBA Callback]</strong> 탭의 코드를 복사(Copy)하여 메모장에 임시 보관합니다.
-                            </div>
+                        <div>
+                            <strong>1단계: 웹에서 내보내기 & 복사</strong><br>
+                            좌측에서 탭과 버튼들을 구성한 뒤, <strong>[리본 메뉴 주입 빈 .xlsm 다운로드]</strong>를 클릭해 엑셀 파일을 다운로드하고 하단 <strong>[VBA Callback]</strong> 탭의 코드를 복사합니다.
                         </div>
-
-                        <!-- Step 2 -->
-                        <div class="guide-step-card">
-                            <div class="guide-step-header">
-                                <span>2단계: 매크로 편집기 코드 삽입</span>
-                                <span>▼</span>
-                            </div>
-                            <div class="guide-step-content">
-                                다운로드받은 엑셀 파일을 열고 단축키 <kbd>Alt + F11</kbd>을 눌러 매크로 편집기(VBE)를 켭니다. 상단 메뉴에서 <code>[삽입] → [모듈]</code>을 선택하고, 하얀 백지에 복사해둔 VBA 콜백 코드를 그대로 붙여넣습니다(<kbd>Ctrl + V</kbd>).
-                            </div>
+                        <div>
+                            <strong>2단계: 매크로 편집기 코드 삽입</strong><br>
+                            다운로드한 엑셀 파일을 열고 단축키 <kbd>Alt + F11</kbd>을 눌러 매크로 편집기를 실행합니다. 상단 메뉴에서 <code>[삽입] → [모듈]</code>을 추가한 뒤 복사한 코드를 그대로 붙여넣습니다 (<kbd>Ctrl + V</kbd>).
                         </div>
-
-                        <!-- Step 3 -->
-                        <div class="guide-step-card">
-                            <div class="guide-step-header">
-                                <span>3단계: AI 비서 기능 결합</span>
-                                <span>▼</span>
-                            </div>
-                            <div class="guide-step-content">
-                                <code>Sub 버튼명_Click()</code>과 <code>End Sub</code> 사이의 빈 공간에 버튼이 작동할 실제 동작 명령어를 추가합니다. "특정 폴더를 여는 엑셀 VBA 한 줄을 짜줘" 혹은 "피벗 테이블을 자동 갱신하는 엑셀 VBA를 짜줘"라고 ChatGPT 등 AI에게 질문한 뒤, core 기능 코드를 모듈 모공 사이에 집어넣으면 완료됩니다.
-                            </div>
+                        <div>
+                            <strong>3단계: 실제 동작 명령어 삽입</strong><br>
+                            생성된 <code>Sub 함수명_Click()</code> 모듈 사이에 시트 정렬, 파일 취합 등 실제로 작동할 매크로 실행 코드를 채워넣습니다.
                         </div>
-
-                        <!-- Step 4 -->
-                        <div class="guide-step-card">
-                            <div class="guide-step-header">
-                                <span>4단계: 무한 영구 메뉴 등록</span>
-                                <span>▼</span>
-                            </div>
-                            <div class="guide-step-content">
-                                모든 엑셀 문서에서 이 메뉴를 평생 보려면, 작성한 통합 문서를 <code>[다른 이름으로 저장] → 파일 형식을 [Excel 추가 기능 (*.xlam)]</code>으로 변경해 저장합니다. 그 후 엑셀 <code>[옵션] → [추가 기능] → 하단 관리 [이동]</code>에서 등록하고 확인하면 평생 컴퓨터에 유지됩니다!
-                            </div>
+                        <div>
+                            <strong>4단계: 무한 영구 메뉴 등록 (추가 기능)</strong><br>
+                            모든 엑셀 파일에서 이 리본 메뉴를 사용하려면 파일을 <code>[Excel 추가 기능 (*.xlam)]</code> 형식으로 저장하고, 엑셀 <code>[옵션] → [추가 기능] → [이동]</code>에서 이를 등록하여 사용합니다.
                         </div>
-
                     </div>
 
-                    <!-- Security Alert notice -->
-                    <div class="warning-callout">
-                        <strong>⚠️ 다운로드한 파일이 안 열리나요?</strong>
-                        윈도우 보안 정책에 따라, 인터넷에서 받은 매크로 파일(.xlsm, .xlam)은 차단될 수 있습니다. 
-                        다운로드한 파일을 실행하기 전 <strong>[파일 마우스 우클릭] → [속성] → 일반 탭 가장 하단에 있는 [차단 해제 (Unblock)]</strong> 체크박스에 체크한 후 확인을 클릭해 주시면 정상 실행됩니다!
-                    </div>
-
-                    <!-- Scan Trigger Info notice -->
-                    <div style="font-size: 11px; line-height: 1.5; color: var(--text-secondary); background-color: var(--excel-green-light); padding: 10px; border-radius: 4px; border: 1px dashed var(--excel-green-accent);">
-                        <strong style="color: var(--excel-green-primary); display:block; margin-bottom: 2px;">📁 아이콘 폴더 자동 동기화 가이드:</strong>
-                        M365 아이콘 폴더 내 구조를 임의로 변경(추가/삭제)하신 경우, 폴더의 <strong><code>generate_icons_map.ps1</code></strong> 스크립트를 마우스 우클릭하여 <strong>[PowerShell로 실행]</strong>해 주시면 즉시 웹사이트 탭 구조가 자동 리빌드됩니다!
+                    <!-- Collapsible Security Alert notice -->
+                    <div class="warning-callout" id="warning-callout-card" style="cursor: pointer; user-select: none; border-radius: 4px; padding: 10px 14px;">
+                        <strong style="display: flex; justify-content: space-between; align-items: center; color: #d68f00; font-size: 11px;">
+                            <span>⚠️ 다운로드한 파일이 안 열리나요?</span>
+                            <span id="warning-toggle-arrow" style="font-size: 8px; transition: transform 0.2s;">▼</span>
+                        </strong>
+                        <div id="warning-callout-content" style="display: none; margin-top: 6px; font-size: 10.5px; line-height: 1.4; color: #665c3b;">
+                            윈도우 보안 정책에 따라, 인터넷에서 받은 매크로 파일(.xlsm)은 실행이 차단될 수 있습니다.<br>
+                            실행 전 <strong>[다운로드 파일 우클릭] → [속성] → 일반 탭 가장 하단에 있는 [차단 해제 (Unblock)]</strong> 체크박스에 체크한 후 확인을 클릭해 주시면 정상 실행됩니다!
+                        </div>
                     </div>
 
                 </div>
