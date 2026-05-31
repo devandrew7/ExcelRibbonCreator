@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Custom Ribbon Creator - 노코딩 엑셀 맞춤 메뉴 빌더</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- JSZip Library for Client-side packaging -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+    <!-- Core App JS Scripts (defer is important to load after DOM) -->
+    <script src="icons_map.js" defer></script>
+    <script src="icons.js" defer></script>
+    <script src="zip-generator.js" defer></script>
+    <script src="app.js" defer></script>
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header>
+            <div class="logo-section">
+                <div class="excel-logo-icon">X</div>
+                <div>
+                    <h1>Excel Custom Ribbon Creator</h1>
+                    <p>노코딩 기반 엑셀 맞춤형 리본 메뉴 및 추가기능(XLAM) 생성기</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-secondary" id="btn-demo-workplace">📂 데모 1: 자동화 종합 세트</button>
+                <button class="btn-secondary" id="btn-demo-intrusion">📂 데모 2: 홈 탭 주입 확장</button>
+                <button class="btn-secondary" id="btn-clear-all" style="background-color: rgba(239, 68, 68, 0.1); color: #fff; border-color: rgba(255, 255, 255, 0.25);">🧹 전체 초기화</button>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <div class="main-layout">
+            
+            <!-- 1. Left Sidebar: Compact Component Palette -->
+            <div class="side-panel">
+                <div class="panel-header">
+                    <span>Palette</span>
+                    <span style="font-size: 10px; color: var(--text-secondary);">요소 클릭 추가</span>
+                </div>
+                <div class="panel-content" style="padding: 12px; display:flex; flex-direction:column; gap: 12px;">
+                    
+                    <div class="palette-section-title">기본 계층구조</div>
+                    <div class="component-grid">
+                        <div class="palette-item" id="add-tab" title="가장 상위의 신규 리본 메뉴 탭을 개설합니다.">
+                            <div class="palette-item-icon">📑</div>
+                            <div class="palette-item-details">
+                                <h4>새 탭 추가 (New Tab)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-group" title="탭 내부에 컨트롤들을 담을 새로운 그룹을 생성합니다.">
+                            <div class="palette-item-icon">📦</div>
+                            <div class="palette-item-details">
+                                <h4>새 그룹 추가 (New Group)</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="palette-section-title">동작 컨트롤 (Controls)</div>
+                    <div class="component-grid">
+                        <div class="palette-item" id="add-button" title="VBA 매크로를 실행하는 표준 버튼입니다." draggable="true" data-type="button">
+                            <div class="palette-item-icon">🎯</div>
+                            <div class="palette-item-details">
+                                <h4>일반 버튼 (Button)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-togglebutton" title="켜짐/꺼짐 두 가지 상태를 유지하는 단추입니다." draggable="true" data-type="togglebutton">
+                            <div class="palette-item-icon">🔘</div>
+                            <div class="palette-item-details">
+                                <h4>토글 버튼 (ToggleButton)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-checkbox" title="체크 여부에 따라 선택 동작을 수행하는 상자입니다." draggable="true" data-type="checkbox">
+                            <div class="palette-item-icon">☑️</div>
+                            <div class="palette-item-details">
+                                <h4>체크박스 (CheckBox)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-editbox" title="텍스트 값을 입력받아 VBA로 전달할 수 있는 입력 창입니다." draggable="true" data-type="editbox">
+                            <div class="palette-item-icon">📝</div>
+                            <div class="palette-item-details">
+                                <h4>입력상자 (EditBox)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-combobox" title="입력과 드롭다운 리스트가 결합된 콤보박스입니다." draggable="true" data-type="combobox">
+                            <div class="palette-item-icon">🔤</div>
+                            <div class="palette-item-details">
+                                <h4>콤보박스 (ComboBox)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-dropdown" title="정해진 다수의 리스트 항목 중 하나를 고르는 요소입니다." draggable="true" data-type="dropdown">
+                            <div class="palette-item-icon">🔽</div>
+                            <div class="palette-item-details">
+                                <h4>드롭다운 (DropDown)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-menu" title="클릭 시 하위 서브 메뉴 리스트 버튼들이 확장 노출되는 드롭 메뉴입니다." draggable="true" data-type="menu">
+                            <div class="palette-item-icon">🛠️</div>
+                            <div class="palette-item-details">
+                                <h4>하위 메뉴 (Menu)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-splitbutton" title="기본 단추 실행과 하위 메뉴 화살표가 결합된 분할 단추입니다." draggable="true" data-type="splitbutton">
+                            <div class="palette-item-icon">⚡</div>
+                            <div class="palette-item-details">
+                                <h4>분할 버튼 (SplitButton)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-labelcontrol" title="리본바 내에 고정 텍스트 문구나 안내를 출력합니다." draggable="true" data-type="labelcontrol">
+                            <div class="palette-item-icon">ℹ️</div>
+                            <div class="palette-item-details">
+                                <h4>텍스트 레이블 (Label)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-separator" title="그룹 내의 기능 영역을 시각적으로 나눠주는 수직 구분선입니다." draggable="true" data-type="separator">
+                            <div class="palette-item-icon">➖</div>
+                            <div class="palette-item-details">
+                                <h4>구분선 (Separator)</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 2. Center: Simulated Excel & Property Panel & Real-time Codes (Centralized Layout) -->
+            <div class="center-content">
+                
+                <!-- Simulated Excel Workspace -->
+                <div class="simulated-window" style="margin-bottom: 4px;">
+                    
+                    <!-- Title Bar -->
+                    <div class="excel-title-bar">
+                        <div class="left">
+                            <span style="color: var(--excel-green-primary); font-weight: bold;">📊</span>
+                            <span class="title">Book1 [호환 모드] - Microsoft Excel (리본 시뮬레이터)</span>
+                        </div>
+                        <div style="font-size:12px; font-weight:bold; cursor:default; color:#888;">✕</div>
+                    </div>
+
+                    <!-- Tabs Header Bar -->
+                    <div class="excel-tabs-bar" id="sim-tabs-bar">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                    <!-- Ribbon Body -->
+                    <div class="excel-ribbon-body" id="sim-ribbon-body">
+                        <!-- Rendered by JS -->
+                    </div>
+
+                </div>
+
+                <!-- Properties Editor (Middle panel) -->
+                <div class="property-panel">
+                    <div class="property-panel-header">
+                        <h3 id="editor-header-text">🎯 속성 에디터</h3>
+                    </div>
+                    <div id="property-editor-fields">
+                        <!-- Loaded dynamically based on active selection -->
+                    </div>
+                </div>
+
+                <!-- Centralized Codes Output Container -->
+                <div class="code-container">
+                    <div class="tabs-container">
+                        <button class="tab-btn active" data-tab="panel-xml">CustomUI XML 소스코드</button>
+                        <button class="tab-btn" data-tab="panel-vba">VBA Callback 매크로 소스</button>
+                    </div>
+
+                    <!-- XML Box -->
+                    <div class="code-panel active" id="panel-xml">
+                        <div class="code-box-wrapper">
+                            <button class="copy-btn" id="copy-xml">📋 XML 복사</button>
+                            <textarea class="code-box" id="code-xml-box" readonly></textarea>
+                        </div>
+                    </div>
+
+                    <!-- VBA Box -->
+                    <div class="code-panel" id="panel-vba">
+                        <div class="code-box-wrapper">
+                            <button class="copy-btn" id="copy-vba">📋 VBA 복사</button>
+                            <textarea class="code-box" id="code-vba-box" readonly></textarea>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 3. Right Sidebar: Guide Accordion, Notice Warnings & Exports -->
+            <div class="side-panel right-panel">
+                <div class="panel-header">
+                    <span>Export & Guides</span>
+                </div>
+                <div class="panel-content" style="display:flex; flex-direction:column; gap: 14px; padding: 12px;">
+                    
+                    <!-- Action Exporter Download Buttons -->
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <button class="btn-primary" id="btn-export-xlsm" style="width:100%; justify-content:center; padding: 10px; font-size:12px;">
+                            📥 리본 메뉴 주입 빈 .xlsm 다운로드
+                        </button>
+                        <button class="btn-primary" id="btn-export-xlam" style="width:100%; justify-content:center; padding: 10px; font-size:12px; background: linear-gradient(to bottom, var(--excel-green-accent), var(--excel-green-dark));">
+                            📥 리본 메뉴 주입 추가기능 .xlam 다운로드
+                        </button>
+                    </div>
+
+                    <!-- Korea Step Guide Accordion -->
+                    <div class="guide-accordion">
+                        <div style="padding: 8px 12px; font-weight:700; font-size:11.5px; border-bottom:1px solid var(--border-color); color:var(--excel-green-primary); background-color:#f8f8f8;">
+                            📚 엑셀 리본 메뉴 적용 가이드 (초보자용)
+                        </div>
+                        
+                        <!-- Step 1 -->
+                        <div class="guide-step-card active">
+                            <div class="guide-step-header">
+                                <span>1단계: 웹에서 내보내기 & 복사</span>
+                                <span>▼</span>
+                            </div>
+                            <div class="guide-step-content">
+                                좌측에서 탭과 버튼들을 조합한 뒤, <strong>[리본 메뉴 주입 빈 .xlsm 다운로드]</strong>를 클릭해 가상 엑셀 파일을 다운로드합니다. 이와 함께 오른쪽 <strong>[VBA Callback]</strong> 탭의 코드를 복사(Copy)하여 메모장에 임시 보관합니다.
+                            </div>
+                        </div>
+
+                        <!-- Step 2 -->
+                        <div class="guide-step-card">
+                            <div class="guide-step-header">
+                                <span>2단계: 매크로 편집기 코드 삽입</span>
+                                <span>▼</span>
+                            </div>
+                            <div class="guide-step-content">
+                                다운로드받은 엑셀 파일을 열고 단축키 <kbd>Alt + F11</kbd>을 눌러 매크로 편집기(VBE)를 켭니다. 상단 메뉴에서 <code>[삽입] → [모듈]</code>을 선택하고, 하얀 백지에 복사해둔 VBA 콜백 코드를 그대로 붙여넣습니다(<kbd>Ctrl + V</kbd>).
+                            </div>
+                        </div>
+
+                        <!-- Step 3 -->
+                        <div class="guide-step-card">
+                            <div class="guide-step-header">
+                                <span>3단계: AI 비서 기능 결합</span>
+                                <span>▼</span>
+                            </div>
+                            <div class="guide-step-content">
+                                <code>Sub 버튼명_Click()</code>과 <code>End Sub</code> 사이의 빈 공간에 버튼이 작동할 실제 동작 명령어를 추가합니다. "특정 폴더를 여는 엑셀 VBA 한 줄을 짜줘" 혹은 "피벗 테이블을 자동 갱신하는 엑셀 VBA를 짜줘"라고 ChatGPT 등 AI에게 질문한 뒤, core 기능 코드를 모듈 모공 사이에 집어넣으면 완료됩니다.
+                            </div>
+                        </div>
+
+                        <!-- Step 4 -->
+                        <div class="guide-step-card">
+                            <div class="guide-step-header">
+                                <span>4단계: 무한 영구 메뉴 등록</span>
+                                <span>▼</span>
+                            </div>
+                            <div class="guide-step-content">
+                                모든 엑셀 문서에서 이 메뉴를 평생 보려면, 작성한 통합 문서를 <code>[다른 이름으로 저장] → 파일 형식을 [Excel 추가 기능 (*.xlam)]</code>으로 변경해 저장합니다. 그 후 엑셀 <code>[옵션] → [추가 기능] → 하단 관리 [이동]</code>에서 등록하고 확인하면 평생 컴퓨터에 유지됩니다!
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Security Alert notice -->
+                    <div class="warning-callout">
+                        <strong>⚠️ 다운로드한 파일이 안 열리나요?</strong>
+                        윈도우 보안 정책에 따라, 인터넷에서 받은 매크로 파일(.xlsm, .xlam)은 차단될 수 있습니다. 
+                        다운로드한 파일을 실행하기 전 <strong>[파일 마우스 우클릭] → [속성] → 일반 탭 가장 하단에 있는 [차단 해제 (Unblock)]</strong> 체크박스에 체크한 후 확인을 클릭해 주시면 정상 실행됩니다!
+                    </div>
+
+                    <!-- Scan Trigger Info notice -->
+                    <div style="font-size: 11px; line-height: 1.5; color: var(--text-secondary); background-color: var(--excel-green-light); padding: 10px; border-radius: 4px; border: 1px dashed var(--excel-green-accent);">
+                        <strong style="color: var(--excel-green-primary); display:block; margin-bottom: 2px;">📁 아이콘 폴더 자동 동기화 가이드:</strong>
+                        M365 아이콘 폴더 내 구조를 임의로 변경(추가/삭제)하신 경우, 폴더의 <strong><code>generate_icons_map.ps1</code></strong> 스크립트를 마우스 우클릭하여 <strong>[PowerShell로 실행]</strong>해 주시면 즉시 웹사이트 탭 구조가 자동 리빌드됩니다!
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- --- Modal Searchable Icon Picker Window --- -->
+    <div class="modal-overlay" id="icon-picker-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>오피스 및 이모지 아이콘 라이브러리 검색</h3>
+                <button class="close-modal">✖</button>
+            </div>
+            
+            <!-- Source Selector Tabs (MSO vs EMOJI only!) -->
+            <div class="picker-source-tabs">
+                <button class="picker-source-btn active" data-source="mso">Excel 기본 아이콘 (imageMso)</button>
+                <button class="picker-source-btn" data-source="emoji">이모지 기호 아이콘 (Emoji)</button>
+            </div>
+
+            <!-- Search input -->
+            <div class="modal-search-bar">
+                <input type="text" id="modal-icon-search" placeholder="영문 명칭 혹은 한글 의미 키워드를 입력해 아이콘을 실시간 검색하세요...">
+            </div>
+
+            <!-- Dynamic Sub-Tabs Container (Fills sub-tabs recursively for folders/emojis) -->
+            <div class="sub-tabs-container" id="modal-sub-tabs">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Visual grid container -->
+            <div class="icons-grid" id="modal-icons-grid">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
