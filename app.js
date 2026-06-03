@@ -1002,6 +1002,54 @@ function renderRibbonSimulator() {
 }
 
 // --- 6. Element Creation, Deletion & Movement Helpers ---
+function isControlIdExists(id) {
+    if (!ribbonState || !ribbonState.tabs) return false;
+    for (const tab of ribbonState.tabs) {
+        if (tab.id === id) return true;
+        if (tab.groups) {
+            for (const group of tab.groups) {
+                if (group.id === id) return true;
+                if (group.controls) {
+                    for (const ctrl of group.controls) {
+                        if (ctrl.id === id) return true;
+                        if (ctrl.controls) {
+                            for (const subCtrl of ctrl.controls) {
+                                if (subCtrl.id === id) return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+function generateUniqueControlId(type) {
+    let prefix = "btn";
+    if (type === 'separator') prefix = "sep";
+    else if (type === 'checkbox') prefix = "chk";
+    else if (type === 'editbox') prefix = "edit";
+    else if (type === 'combobox') prefix = "combo";
+    else if (type === 'dropdown') prefix = "drop";
+    else if (type === 'gallery') prefix = "gallery";
+    else if (type === 'box') prefix = "box";
+    else if (type === 'buttongroup') prefix = "btnGroup";
+    else if (type === 'labelcontrol') prefix = "lbl";
+    else if (type === 'menu') prefix = "menu";
+    else if (type === 'splitbutton') prefix = "split";
+    else if (type === 'togglebutton') prefix = "toggle";
+    
+    let counter = 1;
+    while (true) {
+        const candidateId = `${prefix}_Custom_${counter}`;
+        if (!isControlIdExists(candidateId)) {
+            return candidateId;
+        }
+        counter++;
+    }
+}
+
 function addNewTab() {
     const newIdx = ribbonState.tabs.length + 1;
     const tab = {
@@ -1047,33 +1095,34 @@ function addNewControlToSpecificGroup(type, tabIdx, grpIdx) {
     const group = tab.groups[grpIdx];
 
     const newIdx = group.controls.length + 1;
-    let control = { id: `${type}_Custom_${newIdx}`, type: type };
+    const newId = generateUniqueControlId(type);
+    let control = { id: newId, type: type };
 
     if (type === 'separator') {
-        control = { id: `sep_${newIdx}`, type: "separator" };
+        control = { id: newId, type: "separator" };
     } else if (type === 'checkbox') {
-        control = { id: `chk_Custom_${newIdx}`, type: "checkbox", label: `선택 체크박스 ${newIdx}`, checked: false, onAction: `chk_Custom_${newIdx}_Click`, enabled: true, visible: true };
+        control = { id: newId, type: "checkbox", label: `선택 체크박스 ${newIdx}`, checked: false, onAction: `${newId}_Click`, enabled: true, visible: true };
     } else if (type === 'editbox') {
-        control = { id: `edit_Custom_${newIdx}`, type: "editbox", label: `텍스트 입력 ${newIdx}`, text: "", onAction: `edit_Custom_${newIdx}_Change`, enabled: true, visible: true };
+        control = { id: newId, type: "editbox", label: `텍스트 입력 ${newIdx}`, text: "", onAction: `${newId}_Change`, enabled: true, visible: true };
     } else if (type === 'combobox') {
-        control = { id: `combo_Custom_${newIdx}`, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "선택1", onAction: `combo_Custom_${newIdx}_Change`, enabled: true, visible: true, items: [{ id: "c1", label: "선택1" }, { id: "c2", label: "선택2" }] };
+        control = { id: newId, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "선택1", onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_c1`, label: "선택1" }, { id: `${newId}_c2`, label: "선택2" }] };
     } else if (type === 'dropdown') {
-        control = { id: `drop_Custom_${newIdx}`, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `drop_Custom_${newIdx}_Change`, enabled: true, visible: true, items: [{ id: "d1", label: "옵션1" }, { id: "d2", label: "옵션2" }] };
+        control = { id: newId, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_d1`, label: "옵션1" }, { id: `${newId}_d2`, label: "옵션2" }] };
     } else if (type === 'gallery') {
-        control = { id: `gallery_Custom_${newIdx}`, type: "gallery", label: `갤러리 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", onAction: `gallery_Custom_${newIdx}_Click`, enabled: true, visible: true, items: [{ id: "g1", label: "항목1" }, { id: "g2", label: "항목2" }] };
+        control = { id: newId, type: "gallery", label: `갤러리 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", onAction: `${newId}_Click`, enabled: true, visible: true, items: [{ id: `${newId}_g1`, label: "항목1" }, { id: `${newId}_g2`, label: "항목2" }] };
     } else if (type === 'box') {
-        control = { id: `box_Custom_${newIdx}`, type: "box", label: `상자 ${newIdx}`, boxStyle: "horizontal" };
+        control = { id: newId, type: "box", label: `상자 ${newIdx}`, boxStyle: "horizontal" };
     } else if (type === 'buttongroup') {
-        control = { id: `btnGroup_Custom_${newIdx}`, type: "buttongroup", label: `버튼 그룹 ${newIdx}` };
+        control = { id: newId, type: "buttongroup", label: `버튼 그룹 ${newIdx}` };
     } else if (type === 'labelcontrol') {
-        control = { id: `lbl_Custom_${newIdx}`, type: "labelcontrol", label: `레이블 정보 ${newIdx}` };
+        control = { id: newId, type: "labelcontrol", label: `레이블 정보 ${newIdx}` };
     } else if (type === 'menu') {
-        control = { id: `menu_Custom_${newIdx}`, type: "menu", label: `하위 메뉴 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", enabled: true, visible: true };
+        control = { id: newId, type: "menu", label: `하위 메뉴 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", enabled: true, visible: true };
     } else if (type === 'splitbutton') {
-        control = { id: `split_Custom_${newIdx}`, type: "splitbutton", label: `분할 버튼 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Deploy.svg", enabled: true, visible: true, controls: [{ id: "btn_Sub1", type: "button", label: "서브 명령 1", onAction: "btn_Sub1_Click" }] };
+        control = { id: newId, type: "splitbutton", label: `분할 버튼 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Deploy.svg", enabled: true, visible: true, controls: [{ id: `${newId}_btnSub1`, type: "button", label: "서브 명령 1", onAction: `${newId}_btnSub1_Click` }] };
     } else {
         // button or togglebutton
-        control = { id: `btn_Custom_${newIdx}`, type: type, label: `${type === 'togglebutton' ? '토글 버튼' : '새 버튼'} ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Top Speed.svg", onAction: `btn_Custom_${newIdx}_Click`, enabled: true, visible: true, checked: false };
+        control = { id: newId, type: type, label: `${type === 'togglebutton' ? '토글 버튼' : '새 버튼'} ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Top Speed.svg", onAction: `${newId}_Click`, enabled: true, visible: true, checked: false };
     }
 
     initializeControlVbaProperties(control);
@@ -1189,33 +1238,34 @@ function insertNewControlAtPosition(type, tabIdx, grpIdx, destCtrlIdx) {
     const group = tab.groups[grpIdx];
 
     const newIdx = group.controls.length + 1;
-    let control = { id: `${type}_Custom_${newIdx}`, type: type };
+    const newId = generateUniqueControlId(type);
+    let control = { id: newId, type: type };
 
     if (type === 'separator') {
-        control = { id: `sep_${newIdx}`, type: "separator" };
+        control = { id: newId, type: "separator" };
     } else if (type === 'checkbox') {
-        control = { id: `chk_Custom_${newIdx}`, type: "checkbox", label: `선택 체크박스 ${newIdx}`, checked: false, onAction: `chk_Custom_${newIdx}_Click`, enabled: true, visible: true };
+        control = { id: newId, type: "checkbox", label: `선택 체크박스 ${newIdx}`, checked: false, onAction: `${newId}_Click`, enabled: true, visible: true };
     } else if (type === 'editbox') {
-        control = { id: `edit_Custom_${newIdx}`, type: "editbox", label: `텍스트 입력 ${newIdx}`, text: "", onAction: `edit_Custom_${newIdx}_Change`, enabled: true, visible: true };
+        control = { id: newId, type: "editbox", label: `텍스트 입력 ${newIdx}`, text: "", onAction: `${newId}_Change`, enabled: true, visible: true };
     } else if (type === 'combobox') {
-        control = { id: `combo_Custom_${newIdx}`, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "선택1", onAction: `combo_Custom_${newIdx}_Change`, enabled: true, visible: true, items: [{ id: "c1", label: "선택1" }, { id: "c2", label: "선택2" }] };
+        control = { id: newId, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "선택1", onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_c1`, label: "선택1" }, { id: `${newId}_c2`, label: "선택2" }] };
     } else if (type === 'dropdown') {
-        control = { id: `drop_Custom_${newIdx}`, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `drop_Custom_${newIdx}_Change`, enabled: true, visible: true, items: [{ id: "d1", label: "옵션1" }, { id: "d2", label: "옵션2" }] };
+        control = { id: newId, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_d1`, label: "옵션1" }, { id: `${newId}_d2`, label: "옵션2" }] };
     } else if (type === 'gallery') {
-        control = { id: `gallery_Custom_${newIdx}`, type: "gallery", label: `갤러리 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", onAction: `gallery_Custom_${newIdx}_Click`, enabled: true, visible: true, items: [{ id: "g1", label: "항목1" }, { id: "g2", label: "항목2" }] };
+        control = { id: newId, type: "gallery", label: `갤러리 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", onAction: `${newId}_Click`, enabled: true, visible: true, items: [{ id: `${newId}_g1`, label: "항목1" }, { id: `${newId}_g2`, label: "항목2" }] };
     } else if (type === 'box') {
-        control = { id: `box_Custom_${newIdx}`, type: "box", label: `상자 ${newIdx}`, boxStyle: "horizontal" };
+        control = { id: newId, type: "box", label: `상자 ${newIdx}`, boxStyle: "horizontal" };
     } else if (type === 'buttongroup') {
-        control = { id: `btnGroup_Custom_${newIdx}`, type: "buttongroup", label: `버튼 그룹 ${newIdx}` };
+        control = { id: newId, type: "buttongroup", label: `버튼 그룹 ${newIdx}` };
     } else if (type === 'labelcontrol') {
-        control = { id: `lbl_Custom_${newIdx}`, type: "labelcontrol", label: `레이블 정보 ${newIdx}` };
+        control = { id: newId, type: "labelcontrol", label: `레이블 정보 ${newIdx}` };
     } else if (type === 'menu') {
-        control = { id: `menu_Custom_${newIdx}`, type: "menu", label: `하위 메뉴 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", enabled: true, visible: true };
+        control = { id: newId, type: "menu", label: `하위 메뉴 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", enabled: true, visible: true };
     } else if (type === 'splitbutton') {
-        control = { id: `split_Custom_${newIdx}`, type: "splitbutton", label: `분할 버튼 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Deploy.svg", enabled: true, visible: true, controls: [{ id: "btn_Sub1", type: "button", label: "서브 명령 1", onAction: "btn_Sub1_Click" }] };
+        control = { id: newId, type: "splitbutton", label: `분할 버튼 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Deploy.svg", enabled: true, visible: true, controls: [{ id: `${newId}_btnSub1`, type: "button", label: "서브 명령 1", onAction: `${newId}_btnSub1_Click` }] };
     } else {
         // button or togglebutton
-        control = { id: `btn_Custom_${newIdx}`, type: type, label: `${type === 'togglebutton' ? '토글 버튼' : '새 버튼'} ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Top Speed.svg", onAction: `btn_Custom_${newIdx}_Click`, enabled: true, visible: true, checked: false };
+        control = { id: newId, type: type, label: `${type === 'togglebutton' ? '토글 버튼' : '새 버튼'} ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Top Speed.svg", onAction: `${newId}_Click`, enabled: true, visible: true, checked: false };
     }
 
     initializeControlVbaProperties(control);
@@ -1557,7 +1607,7 @@ function renderPropertyEditor() {
             document.getElementById("btn-add-drop-item").addEventListener("click", () => {
                 if (!ctrl.items) ctrl.items = [];
                 const nextId = ctrl.items.length + 1;
-                ctrl.items.push({ id: `item${nextId}`, label: `새 옵션 ${nextId}` });
+                ctrl.items.push({ id: `${ctrl.id}_item${nextId}`, label: `새 옵션 ${nextId}` });
                 updateRibbonUI();
             });
 
