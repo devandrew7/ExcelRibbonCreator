@@ -407,18 +407,18 @@ function bindEvents() {
     });
 
     // Palette triggers (10 controls)
-    document.getElementById("add-tab").addEventListener("click", addNewTab);
-    document.getElementById("add-group").addEventListener("click", addNewGroup);
-    document.getElementById("add-button").addEventListener("click", () => addNewControl('button'));
-    document.getElementById("add-togglebutton").addEventListener("click", () => addNewControl('togglebutton'));
-    document.getElementById("add-checkbox").addEventListener("click", () => addNewControl('checkbox'));
-    document.getElementById("add-editbox").addEventListener("click", () => addNewControl('editbox'));
-    document.getElementById("add-combobox").addEventListener("click", () => addNewControl('combobox'));
-    document.getElementById("add-dropdown").addEventListener("click", () => addNewControl('dropdown'));
-    document.getElementById("add-menu").addEventListener("click", () => addNewControl('menu'));
-    document.getElementById("add-labelcontrol").addEventListener("click", () => addNewControl('labelcontrol'));
-    document.getElementById("add-separator").addEventListener("click", () => addNewControl('separator'));
-    document.getElementById("add-box").addEventListener("click", () => addNewControl('box'));
+    document.getElementById("add-tab")?.addEventListener("click", addNewTab);
+    document.getElementById("add-group")?.addEventListener("click", addNewGroup);
+    document.getElementById("add-button")?.addEventListener("click", () => addNewControl('button'));
+    document.getElementById("add-togglebutton")?.addEventListener("click", () => addNewControl('togglebutton'));
+    document.getElementById("add-checkbox")?.addEventListener("click", () => addNewControl('checkbox'));
+    document.getElementById("add-editbox")?.addEventListener("click", () => addNewControl('editbox'));
+    document.getElementById("add-combobox")?.addEventListener("click", () => addNewControl('combobox'));
+    document.getElementById("add-dropdown")?.addEventListener("click", () => addNewControl('dropdown'));
+    document.getElementById("add-menu")?.addEventListener("click", () => addNewControl('menu'));
+    document.getElementById("add-labelcontrol")?.addEventListener("click", () => addNewControl('labelcontrol'));
+    document.getElementById("add-separator")?.addEventListener("click", () => addNewControl('separator'));
+    document.getElementById("add-box")?.addEventListener("click", () => addNewControl('box'));
 
     // Palette Drag & Drop binders
     const draggablePaletteItems = document.querySelectorAll(".palette-item[draggable='true']");
