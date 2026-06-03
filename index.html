@@ -49,18 +49,30 @@
                 </div>
                 <div class="panel-content" style="padding: 12px; display:flex; flex-direction:column; gap: 12px;">
                     
-                    <div class="palette-section-title">기본 계층구조</div>
+                    <div class="palette-section-title">기본 계층구조 (Structure)</div>
                     <div class="component-grid">
                         <div class="palette-item" id="add-tab" title="가장 상위의 신규 리본 메뉴 탭을 개설합니다.">
                             <div class="palette-item-icon">📑</div>
                             <div class="palette-item-details">
-                                <h4>새 탭 추가 (New Tab)</h4>
+                                <h4>탭 (RibbonTab)</h4>
                             </div>
                         </div>
                         <div class="palette-item" id="add-group" title="탭 내부에 컨트롤들을 담을 새로운 그룹을 생성합니다.">
                             <div class="palette-item-icon">📦</div>
                             <div class="palette-item-details">
-                                <h4>새 그룹 추가 (New Group)</h4>
+                                <h4>그룹 (RibbonGroup)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-box" title="컨트롤들을 가로/세로로 정렬하여 배치하는 상자 컨테이너를 생성합니다." draggable="true" data-type="box">
+                            <div class="palette-item-icon">🔲</div>
+                            <div class="palette-item-details">
+                                <h4>상자 (RibbonBox)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-buttongroup" title="여러 버튼들을 조밀하게 한 곳에 모으는 버튼 그룹을 생성합니다." draggable="true" data-type="buttongroup">
+                            <div class="palette-item-icon">🗂️</div>
+                            <div class="palette-item-details">
+                                <h4>버튼 그룹 (RibbonButtonGroup)</h4>
                             </div>
                         </div>
                     </div>
@@ -70,61 +82,67 @@
                         <div class="palette-item" id="add-button" title="VBA 매크로를 실행하는 표준 버튼입니다." draggable="true" data-type="button">
                             <div class="palette-item-icon">🎯</div>
                             <div class="palette-item-details">
-                                <h4>일반 버튼 (Button)</h4>
+                                <h4>버튼 (RibbonButton)</h4>
                             </div>
                         </div>
-                        <div class="palette-item" id="add-togglebutton" title="켜짐/꺼짐 두 가지 상태를 유지하는 단추입니다." draggable="true" data-type="togglebutton">
+                        <div class="palette-item" id="add-togglebutton" title="켜짐/꺼짐 두 가지 상태를 유지하는 단추입니다. (이미지 없음)" draggable="true" data-type="togglebutton">
                             <div class="palette-item-icon">🔘</div>
                             <div class="palette-item-details">
-                                <h4>토글 버튼 (ToggleButton)</h4>
+                                <h4>토글 버튼 (RibbonToggleButton)</h4>
                             </div>
                         </div>
-                        <div class="palette-item" id="add-checkbox" title="체크 여부에 따라 선택 동작을 수행하는 상자입니다." draggable="true" data-type="checkbox">
+                        <div class="palette-item" id="add-checkbox" title="체크 여부에 따라 선택 동작을 수행하는 확인란입니다. (이미지 없음)" draggable="true" data-type="checkbox">
                             <div class="palette-item-icon">☑️</div>
                             <div class="palette-item-details">
-                                <h4>체크박스 (CheckBox)</h4>
+                                <h4>확인란 (RibbonCheckBox)</h4>
                             </div>
                         </div>
                         <div class="palette-item" id="add-editbox" title="텍스트 값을 입력받아 VBA로 전달할 수 있는 입력 창입니다." draggable="true" data-type="editbox">
                             <div class="palette-item-icon">📝</div>
                             <div class="palette-item-details">
-                                <h4>입력상자 (EditBox)</h4>
+                                <h4>EditBox (RibbonEditBox)</h4>
                             </div>
                         </div>
                         <div class="palette-item" id="add-combobox" title="입력과 드롭다운 리스트가 결합된 콤보박스입니다." draggable="true" data-type="combobox">
                             <div class="palette-item-icon">🔤</div>
                             <div class="palette-item-details">
-                                <h4>콤보박스 (ComboBox)</h4>
+                                <h4>ComboBox (RibbonComboBox)</h4>
                             </div>
                         </div>
                         <div class="palette-item" id="add-dropdown" title="정해진 다수의 리스트 항목 중 하나를 고르는 요소입니다." draggable="true" data-type="dropdown">
                             <div class="palette-item-icon">🔽</div>
                             <div class="palette-item-details">
-                                <h4>드롭다운 (DropDown)</h4>
+                                <h4>DropDown (RibbonDropDown)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-gallery" title="이미지와 텍스트 리스트를 그리드로 노출하고 실행하는 갤러리입니다." draggable="true" data-type="gallery">
+                            <div class="palette-item-icon">▤</div>
+                            <div class="palette-item-details">
+                                <h4>갤러리 (RibbonGallery)</h4>
                             </div>
                         </div>
                         <div class="palette-item" id="add-menu" title="클릭 시 하위 서브 메뉴 리스트 버튼들이 확장 노출되는 드롭 메뉴입니다." draggable="true" data-type="menu">
                             <div class="palette-item-icon">🛠️</div>
                             <div class="palette-item-details">
-                                <h4>하위 메뉴 (Menu)</h4>
+                                <h4>메뉴 (RibbonMenu)</h4>
                             </div>
                         </div>
                         <div class="palette-item" id="add-splitbutton" title="기본 단추 실행과 하위 메뉴 화살표가 결합된 분할 단추입니다." draggable="true" data-type="splitbutton">
                             <div class="palette-item-icon">⚡</div>
                             <div class="palette-item-details">
-                                <h4>분할 버튼 (SplitButton)</h4>
+                                <h4>스플릿 버튼 (RibbonSplitButton)</h4>
                             </div>
                         </div>
                         <div class="palette-item" id="add-labelcontrol" title="리본바 내에 고정 텍스트 문구나 안내를 출력합니다." draggable="true" data-type="labelcontrol">
                             <div class="palette-item-icon">ℹ️</div>
                             <div class="palette-item-details">
-                                <h4>텍스트 레이블 (Label)</h4>
+                                <h4>레이블 (RibbonLabel)</h4>
                             </div>
                         </div>
                         <div class="palette-item" id="add-separator" title="그룹 내의 기능 영역을 시각적으로 나눠주는 수직 구분선입니다." draggable="true" data-type="separator">
                             <div class="palette-item-icon">➖</div>
                             <div class="palette-item-details">
-                                <h4>구분선 (Separator)</h4>
+                                <h4>구분 기호 (RibbonSeparator)</h4>
                             </div>
                         </div>
                     </div>

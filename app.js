@@ -500,12 +500,12 @@ function bindEvents() {
 }
 
 function initializeControlVbaProperties(ctrl) {
-    if (ctrl.type === 'separator' || ctrl.type === 'labelcontrol') return;
+    if (ctrl.type === 'separator' || ctrl.type === 'labelcontrol' || ctrl.type === 'box' || ctrl.type === 'buttongroup') return;
     
     if (!ctrl.onAction) {
         if (ctrl.type === 'checkbox') ctrl.onAction = ctrl.id + "_Click";
         else if (ctrl.type === 'editbox') ctrl.onAction = ctrl.id + "_Change";
-        else if (['combobox', 'dropdown'].includes(ctrl.type)) ctrl.onAction = ctrl.id + "_Change";
+        else if (['combobox', 'dropdown', 'gallery'].includes(ctrl.type)) ctrl.onAction = ctrl.id + "_Change";
         else ctrl.onAction = ctrl.id + "_Click";
     }
 
@@ -517,6 +517,8 @@ function initializeControlVbaProperties(ctrl) {
             defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl, text As String)\n    MsgBox "입력된 텍스트: " & text, vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
         } else if (['combobox', 'dropdown'].includes(ctrl.type)) {
             defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl, textOrId As String, Optional index As Integer)\n    MsgBox "선택된 값: " & textOrId, vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
+        } else if (ctrl.type === 'gallery') {
+            defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl, id As String, index As Integer)\n    MsgBox "갤러리 선택 항목: " & id & " (인덱스: " & index & ")", vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
         } else if (ctrl.type === 'togglebutton') {
             defaultCode = `Sub ${ctrl.onAction}(control As IRibbonControl, pressed As Boolean)\n    MsgBox "토글 상태: " & pressed, vbInformation, "엑셀 리본 빌더"\nEnd Sub`;
         } else {
@@ -716,6 +718,22 @@ function renderSingleControl(ctrl, activeTabIdx, grpIdx, ctrlIdx, totalControlsC
         const firstLabel = ctrl.items && ctrl.items.length > 0 ? ctrl.items[0].label : '선택 없음';
         ctrlEl.innerHTML = `<span class="control-label">${ctrl.label}</span><div class="dropdown-sim-select-light"><span>${firstLabel}</span><span class="dropdown-arrow-sim-light">▼</span></div>`;
         
+    } else if (ctrl.type === 'gallery') {
+        ctrlEl.className = `ribbon-control-sim size-${ctrl.size || 'large'} type-gallery`;
+        if (isCtrlSelected) ctrlEl.classList.add("selected");
+        const icon = getIconHtml(ctrl.imageMso, ctrl.size === 'large' ? 24 : 14);
+        ctrlEl.innerHTML = `<div class="control-icon">${icon}</div><span class="control-label">${ctrl.label} ▤▾</span>`;
+        
+    } else if (ctrl.type === 'box') {
+        ctrlEl.className = "ribbon-control-sim type-box";
+        if (isCtrlSelected) ctrlEl.classList.add("selected");
+        ctrlEl.innerHTML = `<span class="control-label" style="font-style:italic; color:#888; font-size:10px;">📦 Box [${ctrl.boxStyle || 'horizontal'}]</span><span class="control-label">${ctrl.label}</span>`;
+        
+    } else if (ctrl.type === 'buttongroup') {
+        ctrlEl.className = "ribbon-control-sim type-buttongroup";
+        if (isCtrlSelected) ctrlEl.classList.add("selected");
+        ctrlEl.innerHTML = `<span class="control-label" style="font-style:italic; color:#888; font-size:10px;">🗂️ ButtonGroup</span><span class="control-label">${ctrl.label}</span>`;
+        
     } else if (ctrl.type === 'labelcontrol') {
         ctrlEl.className = "ribbon-control-sim type-labelcontrol";
         if (isCtrlSelected) ctrlEl.classList.add("selected");
@@ -738,13 +756,13 @@ function renderSingleControl(ctrl, activeTabIdx, grpIdx, ctrlIdx, totalControlsC
         ctrlEl.className = `ribbon-control-sim size-${ctrl.size || 'large'} type-togglebutton`;
         if (isCtrlSelected) ctrlEl.classList.add("selected");
         if (ctrl.checked) ctrlEl.classList.add("pressed"); // Visual pressed state
-        const icon = getIconHtml(ctrl.imageMso, ctrl.size === 'large' ? 24 : 14);
         const radioCircle = ctrl.checked ? '●' : '○';
         
+        // No icon/image for togglebutton!
         if (ctrl.size === 'large') {
-            ctrlEl.innerHTML = `<div class="control-icon">${icon}</div><span class="control-label"><span class="radio-sim-circle">${radioCircle}</span> ${ctrl.label}</span>`;
+            ctrlEl.innerHTML = `<span class="control-label"><span class="radio-sim-circle">${radioCircle}</span> ${ctrl.label}</span>`;
         } else {
-            ctrlEl.innerHTML = `<span class="radio-sim-circle">${radioCircle}</span><div class="control-icon" style="width:14px; height:14px; display:flex; align-items:center; margin-right:2px;">${icon}</div><span class="control-label">${ctrl.label}</span>`;
+            ctrlEl.innerHTML = `<span class="radio-sim-circle">${radioCircle}</span><span class="control-label">${ctrl.label}</span>`;
         }
         
     } else {
@@ -824,8 +842,8 @@ function renderRibbonSimulator() {
         if (isSelected) {
             tabEl.classList.add("active");
         }
-
-        tabEl.textContent = tab.label || "제목 없는 탭";
+        
+        tabEl.textContent = tab.label || "새 탭";
         tabEl.addEventListener("click", (e) => {
             e.stopPropagation();
             selectedElement = { type: 'tab', path: [tabIdx] };
@@ -845,19 +863,19 @@ function renderRibbonSimulator() {
         tabsBar.appendChild(tabEl);
     });
 
-    // 2. Active Tab Groups Rendering
-    let activeTabIdx = selectedElement ? selectedElement.path[0] : 0;
-    if (activeTabIdx >= ribbonState.tabs.length) activeTabIdx = 0;
+    // 2. Render Groups & Controls in the Active Tab
+    const activeTabIdx = selectedElement ? selectedElement.path[0] : 0;
     const activeTab = ribbonState.tabs[activeTabIdx];
-
+    
     if (activeTab && activeTab.groups) {
         activeTab.groups.forEach((group, grpIdx) => {
             const groupEl = document.createElement("div");
             groupEl.className = "ribbon-group-sim";
             
             const isSelected = selectedElement && selectedElement.type === 'group' 
-                && selectedElement.path[0] === activeTabIdx && selectedElement.path[1] === grpIdx;
-            
+                && selectedElement.path[0] === activeTabIdx 
+                && selectedElement.path[1] === grpIdx;
+                
             if (isSelected) {
                 groupEl.classList.add("selected");
             }
@@ -868,23 +886,19 @@ function renderRibbonSimulator() {
                 updateRibbonUI();
             });
 
-            // HTML5 Drag & Drop target listeners for groupEl
+            // Drag over / Drag enter / Drag leave / Drop for groups
             groupEl.addEventListener("dragover", (e) => {
-                e.preventDefault(); // Required to allow drop
+                e.preventDefault();
+                e.stopPropagation();
                 e.dataTransfer.dropEffect = "copy";
                 groupEl.classList.add("drag-over");
             });
-
             groupEl.addEventListener("dragenter", (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 groupEl.classList.add("drag-over");
             });
-
             groupEl.addEventListener("dragleave", () => {
-                groupEl.classList.remove("drag-over");
-            });
-
-            groupEl.addEventListener("dragend", () => {
                 groupEl.classList.remove("drag-over");
             });
 
@@ -1045,6 +1059,12 @@ function addNewControlToSpecificGroup(type, tabIdx, grpIdx) {
         control = { id: `combo_Custom_${newIdx}`, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "선택1", onAction: `combo_Custom_${newIdx}_Change`, enabled: true, visible: true, items: [{ id: "c1", label: "선택1" }, { id: "c2", label: "선택2" }] };
     } else if (type === 'dropdown') {
         control = { id: `drop_Custom_${newIdx}`, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `drop_Custom_${newIdx}_Change`, enabled: true, visible: true, items: [{ id: "d1", label: "옵션1" }, { id: "d2", label: "옵션2" }] };
+    } else if (type === 'gallery') {
+        control = { id: `gallery_Custom_${newIdx}`, type: "gallery", label: `갤러리 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", onAction: `gallery_Custom_${newIdx}_Click`, enabled: true, visible: true, items: [{ id: "g1", label: "항목1" }, { id: "g2", label: "항목2" }] };
+    } else if (type === 'box') {
+        control = { id: `box_Custom_${newIdx}`, type: "box", label: `상자 ${newIdx}`, boxStyle: "horizontal" };
+    } else if (type === 'buttongroup') {
+        control = { id: `btnGroup_Custom_${newIdx}`, type: "buttongroup", label: `버튼 그룹 ${newIdx}` };
     } else if (type === 'labelcontrol') {
         control = { id: `lbl_Custom_${newIdx}`, type: "labelcontrol", label: `레이블 정보 ${newIdx}` };
     } else if (type === 'menu') {
@@ -1100,36 +1120,32 @@ function deleteElement(type, path) {
 function moveElement(type, path, direction) {
     if (type === 'tab') {
         const index = path[0];
-        const target = index + direction;
-        if (target >= 0 && target < ribbonState.tabs.length) {
-            const temp = ribbonState.tabs[index];
-            ribbonState.tabs[index] = ribbonState.tabs[target];
-            ribbonState.tabs[target] = temp;
-            selectedElement = { type: 'tab', path: [target] };
+        const targetIndex = index + direction;
+        if (targetIndex >= 0 && targetIndex < ribbonState.tabs.length) {
+            const [movedTab] = ribbonState.tabs.splice(index, 1);
+            ribbonState.tabs.splice(targetIndex, 0, movedTab);
+            selectedElement = { type: 'tab', path: [targetIndex] };
         }
     } else if (type === 'group') {
         const tabIdx = path[0];
         const index = path[1];
-        const target = index + direction;
+        const targetIndex = index + direction;
         const groups = ribbonState.tabs[tabIdx].groups;
-        if (target >= 0 && target < groups.length) {
-            const temp = groups[index];
-            groups[index] = groups[target];
-            groups[target] = temp;
-            selectedElement = { type: 'group', path: [tabIdx, target] };
+        if (targetIndex >= 0 && targetIndex < groups.length) {
+            const [movedGroup] = groups.splice(index, 1);
+            groups.splice(targetIndex, 0, movedGroup);
+            selectedElement = { type: 'group', path: [tabIdx, targetIndex] };
         }
     } else if (type === 'control') {
         const tabIdx = path[0];
         const grpIdx = path[1];
         const index = path[2];
+        const targetIndex = index + direction;
         const controls = ribbonState.tabs[tabIdx].groups[grpIdx].controls;
-        let target = index + direction;
-        target = Math.max(0, Math.min(controls.length - 1, target));
-        
-        if (target !== index) {
+        if (targetIndex >= 0 && targetIndex < controls.length) {
             const [movedControl] = controls.splice(index, 1);
-            controls.splice(target, 0, movedControl);
-            selectedElement = { type: 'control', path: [tabIdx, grpIdx, target] };
+            controls.splice(targetIndex, 0, movedControl);
+            selectedElement = { type: 'control', path: [tabIdx, grpIdx, targetIndex] };
         }
     }
     updateRibbonUI();
@@ -1185,6 +1201,12 @@ function insertNewControlAtPosition(type, tabIdx, grpIdx, destCtrlIdx) {
         control = { id: `combo_Custom_${newIdx}`, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "선택1", onAction: `combo_Custom_${newIdx}_Change`, enabled: true, visible: true, items: [{ id: "c1", label: "선택1" }, { id: "c2", label: "선택2" }] };
     } else if (type === 'dropdown') {
         control = { id: `drop_Custom_${newIdx}`, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `drop_Custom_${newIdx}_Change`, enabled: true, visible: true, items: [{ id: "d1", label: "옵션1" }, { id: "d2", label: "옵션2" }] };
+    } else if (type === 'gallery') {
+        control = { id: `gallery_Custom_${newIdx}`, type: "gallery", label: `갤러리 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", onAction: `gallery_Custom_${newIdx}_Click`, enabled: true, visible: true, items: [{ id: "g1", label: "항목1" }, { id: "g2", label: "항목2" }] };
+    } else if (type === 'box') {
+        control = { id: `box_Custom_${newIdx}`, type: "box", label: `상자 ${newIdx}`, boxStyle: "horizontal" };
+    } else if (type === 'buttongroup') {
+        control = { id: `btnGroup_Custom_${newIdx}`, type: "buttongroup", label: `버튼 그룹 ${newIdx}` };
     } else if (type === 'labelcontrol') {
         control = { id: `lbl_Custom_${newIdx}`, type: "labelcontrol", label: `레이블 정보 ${newIdx}` };
     } else if (type === 'menu') {
@@ -1221,26 +1243,25 @@ function createOverlay(onDelete, onMoveLeft, onMoveRight, onMoveUp, onMoveDown) 
     const overlay = document.createElement("div");
     overlay.className = "sim-controls-overlay";
     
-    // Stop event propagation to avoid changing selection when clicking overlay background
-    overlay.addEventListener("click", (e) => e.stopPropagation());
-
+    // 1. D-Pad Left
     if (onMoveLeft) {
         const btnLeft = document.createElement("button");
         btnLeft.type = "button";
-        btnLeft.className = "overlay-btn";
+        btnLeft.className = "overlay-btn move-left";
         btnLeft.innerHTML = "◀";
-        btnLeft.title = "왼쪽으로 이동";
+        btnLeft.title = "왼쪽(이전 컬럼) 이동";
         btnLeft.addEventListener("click", (e) => {
             e.stopPropagation();
             onMoveLeft();
         });
         overlay.appendChild(btnLeft);
     }
-
+    
+    // 2. D-Pad Up
     if (onMoveUp) {
         const btnUp = document.createElement("button");
         btnUp.type = "button";
-        btnUp.className = "overlay-btn";
+        btnUp.className = "overlay-btn move-up";
         btnUp.innerHTML = "▲";
         btnUp.title = "위로 이동";
         btnUp.addEventListener("click", (e) => {
@@ -1250,10 +1271,11 @@ function createOverlay(onDelete, onMoveLeft, onMoveRight, onMoveUp, onMoveDown) 
         overlay.appendChild(btnUp);
     }
 
+    // 3. D-Pad Down
     if (onMoveDown) {
         const btnDown = document.createElement("button");
         btnDown.type = "button";
-        btnDown.className = "overlay-btn";
+        btnDown.className = "overlay-btn move-down";
         btnDown.innerHTML = "▼";
         btnDown.title = "아래로 이동";
         btnDown.addEventListener("click", (e) => {
@@ -1263,12 +1285,13 @@ function createOverlay(onDelete, onMoveLeft, onMoveRight, onMoveUp, onMoveDown) 
         overlay.appendChild(btnDown);
     }
 
+    // 4. D-Pad Right
     if (onMoveRight) {
         const btnRight = document.createElement("button");
         btnRight.type = "button";
-        btnRight.className = "overlay-btn";
+        btnRight.className = "overlay-btn move-right";
         btnRight.innerHTML = "▶";
-        btnRight.title = "오른쪽으로 이동";
+        btnRight.title = "오른쪽(다음 컬럼) 이동";
         btnRight.addEventListener("click", (e) => {
             e.stopPropagation();
             onMoveRight();
@@ -1276,6 +1299,7 @@ function createOverlay(onDelete, onMoveLeft, onMoveRight, onMoveUp, onMoveDown) 
         overlay.appendChild(btnRight);
     }
 
+    // 5. Delete Action
     if (onDelete) {
         const btnDel = document.createElement("button");
         btnDel.type = "button";
@@ -1381,7 +1405,7 @@ function renderPropertyEditor() {
         let callbackMarkup = '';
         let extraFields = '';
 
-        if (ctrl.type !== 'labelcontrol') {
+        if (!['labelcontrol', 'box', 'buttongroup', 'separator'].includes(ctrl.type)) {
             const labelText = ctrl.type === 'editbox' || ctrl.type === 'combobox' ? 'VBA 변경 함수 (onChange)' : 'VBA 매크로 함수 (onAction)';
             callbackMarkup = `
                 <div class="form-group">
@@ -1391,8 +1415,8 @@ function renderPropertyEditor() {
             `;
         }
 
-        const hasSizeAndIcon = ['button', 'togglebutton', 'menu', 'splitbutton'].includes(ctrl.type);
-        if (hasSizeAndIcon) {
+        const hasSize = ['button', 'togglebutton', 'menu', 'splitbutton', 'gallery'].includes(ctrl.type);
+        if (hasSize) {
             sizeMarkup = `
                 <div class="form-group">
                     <label>버튼 크기</label>
@@ -1404,7 +1428,10 @@ function renderPropertyEditor() {
                     </div>
                 </div>
             `;
+        }
 
+        const hasIcon = ['button', 'menu', 'splitbutton', 'gallery'].includes(ctrl.type);
+        if (hasIcon) {
             iconMarkup = `
                 <div class="form-group" style="grid-column: span 1;">
                     <label>아이콘 설정</label>
@@ -1443,6 +1470,16 @@ function renderPropertyEditor() {
                     <input type="text" id="prop-ctrl-togglegroup" value="${ctrl.toggleGroup || ''}" placeholder="예: group1">
                 </div>
             `;
+        } else if (ctrl.type === 'box') {
+            extraFields = `
+                <div class="form-group">
+                    <label>박스 스타일 (정렬 방식)</label>
+                    <select id="prop-ctrl-boxstyle">
+                        <option value="horizontal" ${ctrl.boxStyle === 'horizontal' ? 'selected' : ''}>가로 정렬 (horizontal)</option>
+                        <option value="vertical" ${ctrl.boxStyle === 'vertical' ? 'selected' : ''}>세로 정렬 (vertical)</option>
+                    </select>
+                </div>
+            `;
         } else if (ctrl.type === 'editbox') {
             extraFields = `
                 <div class="form-group">
@@ -1450,7 +1487,7 @@ function renderPropertyEditor() {
                     <input type="text" id="prop-ctrl-text" value="${ctrl.text || ''}">
                 </div>
             `;
-        } else if (ctrl.type === 'combobox' || ctrl.type === 'dropdown') {
+        } else if (['combobox', 'dropdown', 'gallery'].includes(ctrl.type)) {
             let itemsMarkup = '';
             if (ctrl.items) {
                 ctrl.items.forEach((item, itemIdx) => {
@@ -1497,7 +1534,7 @@ function renderPropertyEditor() {
                 ${extraFields}
                 
                 <!-- VBA Code Connector & Textarea Editor -->
-                <div class="vba-connect-section">
+                <div class="vba-connect-section" style="${['box', 'buttongroup', 'labelcontrol'].includes(ctrl.type) ? 'display: none;' : ''}">
                     <div class="vba-connect-left">
                         <label>VBA 코드 프리셋 연결</label>
                         <select id="prop-ctrl-vba-preset" style="width: 100%;">
@@ -1516,7 +1553,7 @@ function renderPropertyEditor() {
             </div>
         `;
 
-        if (['combobox', 'dropdown'].includes(ctrl.type)) {
+        if (['combobox', 'dropdown', 'gallery'].includes(ctrl.type)) {
             document.getElementById("btn-add-drop-item").addEventListener("click", () => {
                 if (!ctrl.items) ctrl.items = [];
                 const nextId = ctrl.items.length + 1;
@@ -1534,7 +1571,7 @@ function renderPropertyEditor() {
             });
         }
 
-        if (hasSizeAndIcon) {
+        if (hasIcon) {
             document.getElementById("btn-open-icon-picker").addEventListener("click", () => {
                 currentIconTargetControl = ctrl;
                 openIconPicker();
@@ -1573,6 +1610,7 @@ function bindPropertyFields() {
             const ctrl = ribbonState.tabs[path[0]].groups[path[1]].controls[path[2]];
             if (targetId === "prop-ctrl-id") ctrl.id = e.target.value;
             if (targetId === "prop-ctrl-label") ctrl.label = e.target.value;
+            if (targetId === "prop-ctrl-boxstyle") ctrl.boxStyle = e.target.value;
             if (targetId === "prop-ctrl-onaction") {
                 const oldAction = ctrl.onAction || "";
                 const newAction = e.target.value;
@@ -1725,6 +1763,23 @@ function compileSingleControlXml(ctrl, indent) {
             });
         }
         xml += `${indent}</dropDown>\n`;
+    } else if (ctrl.type === 'gallery') {
+        xml += `${indent}<gallery id="${ctrl.id}" label="${escapeXml(ctrl.label)}"${sizeAttr}${imageAttr} onAction="${ctrl.onAction}">\n`;
+        if (ctrl.items) {
+            ctrl.items.forEach(item => {
+                xml += `${indent}  <item id="${item.id}" label="${escapeXml(item.label)}" />\n`;
+            });
+        }
+        xml += `${indent}</gallery>\n`;
+    } else if (ctrl.type === 'box') {
+        xml += `${indent}<box id="${ctrl.id}" boxStyle="${ctrl.boxStyle || 'horizontal'}">\n`;
+        xml += `${indent}  <button id="${ctrl.id}_inner" label="상자 내부 예시 단추" />\n`;
+        xml += `${indent}</box>\n`;
+    } else if (ctrl.type === 'buttongroup') {
+        xml += `${indent}<buttonGroup id="${ctrl.id}">\n`;
+        xml += `${indent}  <button id="${ctrl.id}_btn1" label="그룹 단추 1" imageMso="HappyFace" />\n`;
+        xml += `${indent}  <button id="${ctrl.id}_btn2" label="그룹 단추 2" imageMso="Heart" />\n`;
+        xml += `${indent}</buttonGroup>\n`;
     } else if (ctrl.type === 'labelcontrol') {
         xml += `${indent}<labelControl id="${ctrl.id}" label="${escapeXml(ctrl.label)}" />\n`;
     } else if (ctrl.type === 'menu') {
@@ -1739,7 +1794,7 @@ function compileSingleControlXml(ctrl, indent) {
         xml += `${indent}  </menu>\n`;
         xml += `${indent}</splitButton>\n`;
     } else if (ctrl.type === 'togglebutton') {
-        xml += `${indent}<toggleButton id="${ctrl.id}" label="${escapeXml(ctrl.label)}"${sizeAttr}${imageAttr} onAction="${ctrl.onAction}" />\n`;
+        xml += `${indent}<toggleButton id="${ctrl.id}" label="${escapeXml(ctrl.label)}"${sizeAttr} onAction="${ctrl.onAction}" />\n`;
     } else {
         // standard button
         xml += `${indent}<button id="${ctrl.id}" label="${escapeXml(ctrl.label)}"${sizeAttr}${imageAttr} onAction="${ctrl.onAction}" />\n`;
@@ -1765,7 +1820,7 @@ function compileCustomUiXml() {
             tab.groups.forEach(group => {
                 xml += `        <group id="${group.id}" label="${escapeXml(group.label)}">\n`;
                 
-                if (group.controls) {
+                if (group.controls && group.controls.length > 0) {
                     // Group controls into layout columns (consecutive small controls stack up to 3)
                     const columns = [];
                     let currentColumn = [];
@@ -1790,13 +1845,12 @@ function compileCustomUiXml() {
                         columns.push({ type: 'vertical', controls: currentColumn });
                     }
 
-                    // Render columns to XML
-                    let boxCounter = 1;
+                    // Render columns into XML output
                     columns.forEach(col => {
                         if (col.type === 'vertical') {
-                            xml += `          <box id="${group.id}_box${boxCounter++}" boxStyle="vertical">\n`;
-                            col.controls.forEach(ctrl => {
-                                xml += compileSingleControlXml(ctrl, "            ");
+                            xml += `          <box boxStyle="vertical">\n`;
+                            col.controls.forEach(c => {
+                                xml += compileSingleControlXml(c, "            ");
                             });
                             xml += `          </box>\n`;
                         } else {
@@ -1831,7 +1885,7 @@ function compileVbaCallbacks() {
             tab.groups.forEach(group => {
                 if (group.controls) {
                     group.controls.forEach(ctrl => {
-                        if (ctrl.type === 'separator' || ctrl.type === 'labelcontrol' || !ctrl.onAction) return;
+                        if (ctrl.type === 'separator' || ctrl.type === 'labelcontrol' || ctrl.type === 'box' || ctrl.type === 'buttongroup' || !ctrl.onAction) return;
                         if (generatedActions.has(ctrl.onAction)) return;
                         generatedActions.add(ctrl.onAction);
 
@@ -1852,6 +1906,11 @@ function compileVbaCallbacks() {
                                 vba += `' ${ctrl.label} (선택값 변경 시 실행)\n`;
                                 vba += `Sub ${ctrl.onAction}(control As IRibbonControl, textOrId As String, Optional index As Integer)\n`;
                                 vba += `    MsgBox "선택된 값: " & textOrId, vbInformation, "엑셀 리본 빌더"\n`;
+                                vba += `End Sub\n\n`;
+                            } else if (ctrl.type === 'gallery') {
+                                vba += `' ${ctrl.label} (갤러리 선택 변경 시 실행)\n`;
+                                vba += `Sub ${ctrl.onAction}(control As IRibbonControl, id As String, index As Integer)\n`;
+                                vba += `    MsgBox "갤러리 선택: " & id, vbInformation, "엑셀 리본 빌더"\n`;
                                 vba += `End Sub\n\n`;
                             } else if (ctrl.type === 'togglebutton') {
                                 vba += `' ${ctrl.label} (토글 상태 변경 시 실행)\n`;
@@ -1906,6 +1965,11 @@ function buildIconPickerGrid() {
 
         const level1Keys = Object.keys(ICONS_MAP);
         if (level1Keys.length === 0) return;
+
+        // Monolithic category folder check
+        if (m365SelectedLevel1 && !level1Keys.includes(m365SelectedLevel1)) {
+            m365SelectedLevel1 = level1Keys[0];
+        }
 
         // Render Level 1 dynamic sub-tabs
         level1Keys.forEach(l1Key => {
