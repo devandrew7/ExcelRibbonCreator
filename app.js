@@ -416,9 +416,9 @@ function bindEvents() {
     document.getElementById("add-combobox").addEventListener("click", () => addNewControl('combobox'));
     document.getElementById("add-dropdown").addEventListener("click", () => addNewControl('dropdown'));
     document.getElementById("add-menu").addEventListener("click", () => addNewControl('menu'));
-    document.getElementById("add-splitbutton").addEventListener("click", () => addNewControl('splitbutton'));
     document.getElementById("add-labelcontrol").addEventListener("click", () => addNewControl('labelcontrol'));
     document.getElementById("add-separator").addEventListener("click", () => addNewControl('separator'));
+    document.getElementById("add-box").addEventListener("click", () => addNewControl('box'));
 
     // Palette Drag & Drop binders
     const draggablePaletteItems = document.querySelectorAll(".palette-item[draggable='true']");
@@ -718,21 +718,10 @@ function renderSingleControl(ctrl, activeTabIdx, grpIdx, ctrlIdx, totalControlsC
         const firstLabel = ctrl.items && ctrl.items.length > 0 ? ctrl.items[0].label : '선택 없음';
         ctrlEl.innerHTML = `<span class="control-label">${ctrl.label}</span><div class="dropdown-sim-select-light"><span>${firstLabel}</span><span class="dropdown-arrow-sim-light">▼</span></div>`;
         
-    } else if (ctrl.type === 'gallery') {
-        ctrlEl.className = `ribbon-control-sim size-${ctrl.size || 'large'} type-gallery`;
-        if (isCtrlSelected) ctrlEl.classList.add("selected");
-        const icon = getIconHtml(ctrl.imageMso, ctrl.size === 'large' ? 24 : 14);
-        ctrlEl.innerHTML = `<div class="control-icon">${icon}</div><span class="control-label">${ctrl.label} ▤▾</span>`;
-        
     } else if (ctrl.type === 'box') {
         ctrlEl.className = "ribbon-control-sim type-box";
         if (isCtrlSelected) ctrlEl.classList.add("selected");
-        ctrlEl.innerHTML = `<span class="control-label" style="font-style:italic; color:#888; font-size:10px;">📦 Box [${ctrl.boxStyle || 'horizontal'}]</span><span class="control-label">${ctrl.label}</span>`;
-        
-    } else if (ctrl.type === 'buttongroup') {
-        ctrlEl.className = "ribbon-control-sim type-buttongroup";
-        if (isCtrlSelected) ctrlEl.classList.add("selected");
-        ctrlEl.innerHTML = `<span class="control-label" style="font-style:italic; color:#888; font-size:10px;">🗂️ ButtonGroup</span><span class="control-label">${ctrl.label}</span>`;
+        ctrlEl.innerHTML = `<span class="control-label" style="font-style:italic; color:#888; font-size:10px;">📦 상자 [${ctrl.boxStyle || 'vertical'}, ${ctrl.stackLimit || 3}개]</span><span class="control-label">${ctrl.label}</span>`;
         
     } else if (ctrl.type === 'labelcontrol') {
         ctrlEl.className = "ribbon-control-sim type-labelcontrol";
@@ -744,12 +733,6 @@ function renderSingleControl(ctrl, activeTabIdx, grpIdx, ctrlIdx, totalControlsC
         if (isCtrlSelected) ctrlEl.classList.add("selected");
         const icon = getIconHtml(ctrl.imageMso, ctrl.size === 'large' ? 24 : 14);
         ctrlEl.innerHTML = `<div class="control-icon">${icon}</div><span class="control-label">${ctrl.label} ▾</span>`;
-        
-    } else if (ctrl.type === 'splitbutton') {
-        ctrlEl.className = "ribbon-control-sim type-splitbutton";
-        if (isCtrlSelected) ctrlEl.classList.add("selected");
-        const icon = getIconHtml(ctrl.imageMso, 20);
-        ctrlEl.innerHTML = `<div class="splitbutton-main"><div class="control-icon" style="height:20px; width:20px; display:flex; align-items:center;">${icon}</div><span class="control-label">${ctrl.label}</span></div><div class="splitbutton-arrow">▼</div>`;
         
     } else if (ctrl.type === 'togglebutton') {
         // Toggle Button acts like radio buttons
@@ -935,48 +918,53 @@ function renderRibbonSimulator() {
             controlsWrapper.className = "ribbon-group-controls";
 
             if (group.controls && group.controls.length > 0) {
-                // Group controls into layout columns (consecutive small controls stack up to 3)
-                const columns = [];
-                let currentColumn = [];
-                
-                group.controls.forEach((ctrl) => {
-                    const isSmall = ctrl.type !== 'separator' && ctrl.size !== 'large';
-                    if (isSmall) {
-                        currentColumn.push(ctrl);
-                        if (currentColumn.length === 3) {
-                            columns.push({ type: 'vertical', controls: currentColumn });
-                            currentColumn = [];
+                let i = 0;
+                while (i < group.controls.length) {
+                    const ctrl = group.controls[i];
+                    
+                    if (ctrl.type === 'box') {
+                        const stackLimit = ctrl.stackLimit || 3;
+                        const children = [];
+                        let j = i + 1;
+                        while (j < group.controls.length && children.length < stackLimit) {
+                            const candidate = group.controls[j];
+                            if (candidate.type === 'separator' || candidate.type === 'box' || candidate.type === 'buttongroup') {
+                                break;
+                            }
+                            children.push(candidate);
+                            j++;
                         }
-                    } else {
-                        if (currentColumn.length > 0) {
-                            columns.push({ type: 'vertical', controls: currentColumn });
-                            currentColumn = [];
-                        }
-                        columns.push({ type: 'single', control: ctrl });
-                    }
-                });
-                if (currentColumn.length > 0) {
-                    columns.push({ type: 'vertical', controls: currentColumn });
-                }
-
-                // Render columns into wrapper
-                columns.forEach(col => {
-                    if (col.type === 'vertical') {
-                        const colEl = document.createElement("div");
-                        colEl.className = "ribbon-column-vertical-sim";
                         
-                        col.controls.forEach(ctrl => {
-                            const ctrlEl = renderSingleControl(ctrl, activeTabIdx, grpIdx, group.controls.indexOf(ctrl), group.controls.length);
-                            colEl.appendChild(ctrlEl);
+                        const boxEl = renderSingleControl(ctrl, activeTabIdx, grpIdx, i, group.controls.length);
+                        
+                        const boxChildrenContainer = document.createElement("div");
+                        boxChildrenContainer.className = `ribbon-box-children-sim ${ctrl.boxStyle || 'vertical'}`;
+                        boxChildrenContainer.style.display = "flex";
+                        boxChildrenContainer.style.flexDirection = (ctrl.boxStyle === 'horizontal') ? 'row' : 'column';
+                        boxChildrenContainer.style.gap = "4px";
+                        boxChildrenContainer.style.marginTop = "4px";
+                        boxChildrenContainer.style.padding = "4px";
+                        boxChildrenContainer.style.border = "1px dashed #ccc";
+                        boxChildrenContainer.style.borderRadius = "4px";
+                        boxChildrenContainer.style.flexGrow = "1";
+                        boxChildrenContainer.style.justifyContent = "center";
+                        
+                        children.forEach(child => {
+                            const childIdx = group.controls.indexOf(child);
+                            const childEl = renderSingleControl(child, activeTabIdx, grpIdx, childIdx, group.controls.length);
+                            boxChildrenContainer.appendChild(childEl);
                         });
                         
-                        controlsWrapper.appendChild(colEl);
+                        boxEl.appendChild(boxChildrenContainer);
+                        controlsWrapper.appendChild(boxEl);
+                        
+                        i = j;
                     } else {
-                        const ctrl = col.control;
-                        const ctrlEl = renderSingleControl(ctrl, activeTabIdx, grpIdx, group.controls.indexOf(ctrl), group.controls.length);
+                        const ctrlEl = renderSingleControl(ctrl, activeTabIdx, grpIdx, i, group.controls.length);
                         controlsWrapper.appendChild(ctrlEl);
+                        i++;
                     }
-                });
+                }
             } else {
                 const emptyInd = document.createElement("div");
                 emptyInd.className = "empty-group-indicator";
@@ -1105,21 +1093,29 @@ function addNewControlToSpecificGroup(type, tabIdx, grpIdx) {
     } else if (type === 'editbox') {
         control = { id: newId, type: "editbox", label: `텍스트 입력 ${newIdx}`, text: "", onAction: `${newId}_Change`, enabled: true, visible: true };
     } else if (type === 'combobox') {
-        control = { id: newId, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "선택1", onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_c1`, label: "선택1" }, { id: `${newId}_c2`, label: "선택2" }] };
+        control = { id: newId, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "옵션 1", onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_item1`, label: "옵션 1" }, { id: `${newId}_item2`, label: "옵션 2" }] };
     } else if (type === 'dropdown') {
-        control = { id: newId, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_d1`, label: "옵션1" }, { id: `${newId}_d2`, label: "옵션2" }] };
-    } else if (type === 'gallery') {
-        control = { id: newId, type: "gallery", label: `갤러리 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", onAction: `${newId}_Click`, enabled: true, visible: true, items: [{ id: `${newId}_g1`, label: "항목1" }, { id: `${newId}_g2`, label: "항목2" }] };
+        control = { id: newId, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_item1`, label: "옵션 1" }, { id: `${newId}_item2`, label: "옵션 2" }] };
     } else if (type === 'box') {
-        control = { id: newId, type: "box", label: `상자 ${newIdx}`, boxStyle: "horizontal" };
+        control = { id: newId, type: "box", label: `상자 ${newIdx}`, boxStyle: "vertical", stackLimit: 3 };
     } else if (type === 'buttongroup') {
         control = { id: newId, type: "buttongroup", label: `버튼 그룹 ${newIdx}` };
     } else if (type === 'labelcontrol') {
         control = { id: newId, type: "labelcontrol", label: `레이블 정보 ${newIdx}` };
     } else if (type === 'menu') {
-        control = { id: newId, type: "menu", label: `하위 메뉴 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", enabled: true, visible: true };
-    } else if (type === 'splitbutton') {
-        control = { id: newId, type: "splitbutton", label: `분할 버튼 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Deploy.svg", enabled: true, visible: true, controls: [{ id: `${newId}_btnSub1`, type: "button", label: "서브 명령 1", onAction: `${newId}_btnSub1_Click` }] };
+        control = { 
+            id: newId, 
+            type: "menu", 
+            label: `하위 메뉴 ${newIdx}`, 
+            size: "large", 
+            imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", 
+            enabled: true, 
+            visible: true,
+            items: [
+                { id: `${newId}_sub1`, label: "서브 명령 1", onAction: `${newId}_sub1_Click` },
+                { id: `${newId}_sub2`, label: "서브 명령 2", onAction: `${newId}_sub2_Click` }
+            ]
+        };
     } else {
         // button or togglebutton
         control = { id: newId, type: type, label: `${type === 'togglebutton' ? '토글 버튼' : '새 버튼'} ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Top Speed.svg", onAction: `${newId}_Click`, enabled: true, visible: true, checked: false };
@@ -1248,21 +1244,29 @@ function insertNewControlAtPosition(type, tabIdx, grpIdx, destCtrlIdx) {
     } else if (type === 'editbox') {
         control = { id: newId, type: "editbox", label: `텍스트 입력 ${newIdx}`, text: "", onAction: `${newId}_Change`, enabled: true, visible: true };
     } else if (type === 'combobox') {
-        control = { id: newId, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "선택1", onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_c1`, label: "선택1" }, { id: `${newId}_c2`, label: "선택2" }] };
+        control = { id: newId, type: "combobox", label: `콤보 박스 ${newIdx}`, text: "옵션 1", onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_item1`, label: "옵션 1" }, { id: `${newId}_item2`, label: "옵션 2" }] };
     } else if (type === 'dropdown') {
-        control = { id: newId, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_d1`, label: "옵션1" }, { id: `${newId}_d2`, label: "옵션2" }] };
-    } else if (type === 'gallery') {
-        control = { id: newId, type: "gallery", label: `갤러리 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", onAction: `${newId}_Click`, enabled: true, visible: true, items: [{ id: `${newId}_g1`, label: "항목1" }, { id: `${newId}_g2`, label: "항목2" }] };
+        control = { id: newId, type: "dropdown", label: `선택 목록 ${newIdx}`, onAction: `${newId}_Change`, enabled: true, visible: true, items: [{ id: `${newId}_item1`, label: "옵션 1" }, { id: `${newId}_item2`, label: "옵션 2" }] };
     } else if (type === 'box') {
-        control = { id: newId, type: "box", label: `상자 ${newIdx}`, boxStyle: "horizontal" };
+        control = { id: newId, type: "box", label: `상자 ${newIdx}`, boxStyle: "vertical", stackLimit: 3 };
     } else if (type === 'buttongroup') {
         control = { id: newId, type: "buttongroup", label: `버튼 그룹 ${newIdx}` };
     } else if (type === 'labelcontrol') {
         control = { id: newId, type: "labelcontrol", label: `레이블 정보 ${newIdx}` };
     } else if (type === 'menu') {
-        control = { id: newId, type: "menu", label: `하위 메뉴 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", enabled: true, visible: true };
-    } else if (type === 'splitbutton') {
-        control = { id: newId, type: "splitbutton", label: `분할 버튼 ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Deploy.svg", enabled: true, visible: true, controls: [{ id: `${newId}_btnSub1`, type: "button", label: "서브 명령 1", onAction: `${newId}_btnSub1_Click` }] };
+        control = { 
+            id: newId, 
+            type: "menu", 
+            label: `하위 메뉴 ${newIdx}`, 
+            size: "large", 
+            imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Settings.svg", 
+            enabled: true, 
+            visible: true,
+            items: [
+                { id: `${newId}_sub1`, label: "서브 명령 1", onAction: `${newId}_sub1_Click` },
+                { id: `${newId}_sub2`, label: "서브 명령 2", onAction: `${newId}_sub2_Click` }
+            ]
+        };
     } else {
         // button or togglebutton
         control = { id: newId, type: type, label: `${type === 'togglebutton' ? '토글 버튼' : '새 버튼'} ${newIdx}`, size: "large", imageMso: "icons/2024-microsoft-365-content-icons/Microsoft Blue/48x48 Light Blue Icon/Top Speed.svg", onAction: `${newId}_Click`, enabled: true, visible: true, checked: false };
@@ -1409,10 +1413,31 @@ function renderPropertyEditor() {
                         <option value="TabInsert" ${tab.idMso === 'TabInsert' ? 'selected' : ''}>삽입 탭 (TabInsert)</option>
                         <option value="TabPageLayoutExcel" ${tab.idMso === 'TabPageLayoutExcel' ? 'selected' : ''}>페이지 레이아웃 (TabPageLayoutExcel)</option>
                         <option value="TabFormulas" ${tab.idMso === 'TabFormulas' ? 'selected' : ''}>수식 탭 (TabFormulas)</option>
-                        <option value="TabFormulas" ${tab.idMso === 'TabFormulas' ? 'selected' : ''}>데이터 탭 (TabData)</option>
+                        <option value="TabData" ${tab.idMso === 'TabData' ? 'selected' : ''}>데이터 탭 (TabData)</option>
                         <option value="TabReview" ${tab.idMso === 'TabReview' ? 'selected' : ''}>검토 탭 (TabReview)</option>
                         <option value="TabView" ${tab.idMso === 'TabView' ? 'selected' : ''}>보기 탭 (TabView)</option>
                         <option value="TabDeveloper" ${tab.idMso === 'TabDeveloper' ? 'selected' : ''}>개발 도구 (TabDeveloper)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="prop-tab-positiontype-wrapper" style="display: ${!tab.isStandardTab ? 'block' : 'none'};">
+                    <label>탭 시작 위치</label>
+                    <select id="prop-tab-positiontype">
+                        <option value="default" ${tab.positionType === 'default' || !tab.positionType ? 'selected' : ''}>기본 (끝에 배치)</option>
+                        <option value="before" ${tab.positionType === 'before' ? 'selected' : ''}>특정 표준 탭 앞에 배치</option>
+                        <option value="after" ${tab.positionType === 'after' ? 'selected' : ''}>특정 표준 탭 뒤에 배치</option>
+                    </select>
+                </div>
+                <div class="form-group" id="prop-tab-positiontarget-wrapper" style="display: ${!tab.isStandardTab && (tab.positionType === 'before' || tab.positionType === 'after') ? 'block' : 'none'};">
+                    <label>대상 표준 탭</label>
+                    <select id="prop-tab-positiontarget">
+                        <option value="TabHome" ${tab.positionTarget === 'TabHome' || !tab.positionTarget ? 'selected' : ''}>홈 탭 (TabHome)</option>
+                        <option value="TabInsert" ${tab.positionTarget === 'TabInsert' ? 'selected' : ''}>삽입 탭 (TabInsert)</option>
+                        <option value="TabPageLayoutExcel" ${tab.positionTarget === 'TabPageLayoutExcel' ? 'selected' : ''}>페이지 레이아웃 (TabPageLayoutExcel)</option>
+                        <option value="TabFormulas" ${tab.positionTarget === 'TabFormulas' ? 'selected' : ''}>수식 탭 (TabFormulas)</option>
+                        <option value="TabData" ${tab.positionTarget === 'TabData' ? 'selected' : ''}>데이터 탭 (TabData)</option>
+                        <option value="TabReview" ${tab.positionTarget === 'TabReview' ? 'selected' : ''}>검토 탭 (TabReview)</option>
+                        <option value="TabView" ${tab.positionTarget === 'TabView' ? 'selected' : ''}>보기 탭 (TabView)</option>
+                        <option value="TabDeveloper" ${tab.positionTarget === 'TabDeveloper' ? 'selected' : ''}>개발 도구 (TabDeveloper)</option>
                     </select>
                 </div>
             </div>
@@ -1421,6 +1446,25 @@ function renderPropertyEditor() {
         document.getElementById("prop-tab-isStandard").addEventListener("change", (e) => {
             const val = e.target.value === 'true';
             document.getElementById("prop-tab-idMso-wrapper").style.display = val ? 'block' : 'none';
+            document.getElementById("prop-tab-positiontype-wrapper").style.display = val ? 'none' : 'block';
+            if (val) {
+                document.getElementById("prop-tab-positiontarget-wrapper").style.display = 'none';
+            } else {
+                const pType = document.getElementById("prop-tab-positiontype").value;
+                document.getElementById("prop-tab-positiontarget-wrapper").style.display = (pType === 'before' || pType === 'after') ? 'block' : 'none';
+            }
+        });
+
+        document.getElementById("prop-tab-positiontype").addEventListener("change", (e) => {
+            const val = e.target.value;
+            tab.positionType = val;
+            document.getElementById("prop-tab-positiontarget-wrapper").style.display = (val === 'before' || val === 'after') ? 'block' : 'none';
+            updateRibbonUI();
+        });
+
+        document.getElementById("prop-tab-positiontarget").addEventListener("change", (e) => {
+            tab.positionTarget = e.target.value;
+            updateRibbonUI();
         });
 
     } else if (type === 'group') {
@@ -1454,8 +1498,9 @@ function renderPropertyEditor() {
         let iconMarkup = '';
         let callbackMarkup = '';
         let extraFields = '';
+        let layoutMarkup = '';
 
-        if (!['labelcontrol', 'box', 'buttongroup', 'separator'].includes(ctrl.type)) {
+        if (!['labelcontrol', 'separator'].includes(ctrl.type)) {
             const labelText = ctrl.type === 'editbox' || ctrl.type === 'combobox' ? 'VBA 변경 함수 (onChange)' : 'VBA 매크로 함수 (onAction)';
             callbackMarkup = `
                 <div class="form-group">
@@ -1465,7 +1510,7 @@ function renderPropertyEditor() {
             `;
         }
 
-        const hasSize = ['button', 'togglebutton', 'menu', 'splitbutton', 'gallery'].includes(ctrl.type);
+        const hasSize = ['button', 'togglebutton', 'menu'].includes(ctrl.type);
         if (hasSize) {
             sizeMarkup = `
                 <div class="form-group">
@@ -1480,7 +1525,7 @@ function renderPropertyEditor() {
             `;
         }
 
-        const hasIcon = ['button', 'menu', 'splitbutton', 'gallery'].includes(ctrl.type);
+        const hasIcon = ['button', 'menu'].includes(ctrl.type);
         if (hasIcon) {
             iconMarkup = `
                 <div class="form-group" style="grid-column: span 1;">
@@ -1496,7 +1541,35 @@ function renderPropertyEditor() {
             `;
         }
 
-        if (ctrl.type === 'checkbox') {
+        const isSmallCtrl = ctrl.type !== 'separator' && ctrl.type !== 'box' && ctrl.size !== 'large';
+        if (isSmallCtrl) {
+            layoutMarkup = `
+                <div class="form-group" style="grid-column: span 2; display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+                    <input type="checkbox" id="prop-ctrl-startnewcolumn" style="width: auto; margin: 0;" ${ctrl.startNewColumn ? 'checked' : ''}>
+                    <label for="prop-ctrl-startnewcolumn" style="margin: 0; font-weight: normal; cursor: pointer; user-select: none;">새 열로 시작하기 (Start New Column)</label>
+                </div>
+            `;
+        }
+
+        if (ctrl.type === 'box') {
+            extraFields = `
+                <div class="form-group">
+                    <label>상자 정렬 방식 (boxStyle)</label>
+                    <select id="prop-ctrl-boxstyle">
+                        <option value="vertical" ${ctrl.boxStyle === 'vertical' ? 'selected' : ''}>세로 정렬 (vertical)</option>
+                        <option value="horizontal" ${ctrl.boxStyle === 'horizontal' ? 'selected' : ''}>가로 정렬 (horizontal)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>상자 내부 하위개체 개수</label>
+                    <select id="prop-ctrl-stacklimit">
+                        <option value="1" ${ctrl.stackLimit === 1 ? 'selected' : ''}>1개</option>
+                        <option value="2" ${ctrl.stackLimit === 2 ? 'selected' : ''}>2개</option>
+                        <option value="3" ${ctrl.stackLimit === 3 || !ctrl.stackLimit ? 'selected' : ''}>3개 (기본값)</option>
+                    </select>
+                </div>
+            `;
+        } else if (ctrl.type === 'checkbox') {
             extraFields = `
                 <div class="form-group">
                     <label>기본 선택 여부</label>
@@ -1520,16 +1593,6 @@ function renderPropertyEditor() {
                     <input type="text" id="prop-ctrl-togglegroup" value="${ctrl.toggleGroup || ''}" placeholder="예: group1">
                 </div>
             `;
-        } else if (ctrl.type === 'box') {
-            extraFields = `
-                <div class="form-group">
-                    <label>박스 스타일 (정렬 방식)</label>
-                    <select id="prop-ctrl-boxstyle">
-                        <option value="horizontal" ${ctrl.boxStyle === 'horizontal' ? 'selected' : ''}>가로 정렬 (horizontal)</option>
-                        <option value="vertical" ${ctrl.boxStyle === 'vertical' ? 'selected' : ''}>세로 정렬 (vertical)</option>
-                    </select>
-                </div>
-            `;
         } else if (ctrl.type === 'editbox') {
             extraFields = `
                 <div class="form-group">
@@ -1537,7 +1600,7 @@ function renderPropertyEditor() {
                     <input type="text" id="prop-ctrl-text" value="${ctrl.text || ''}">
                 </div>
             `;
-        } else if (['combobox', 'dropdown', 'gallery'].includes(ctrl.type)) {
+        } else if (['combobox', 'dropdown'].includes(ctrl.type)) {
             let itemsMarkup = '';
             if (ctrl.items) {
                 ctrl.items.forEach((item, itemIdx) => {
@@ -1566,6 +1629,32 @@ function renderPropertyEditor() {
                     </div>
                 </div>
             `;
+        } else if (ctrl.type === 'menu') {
+            let itemsMarkup = '';
+            if (ctrl.items) {
+                ctrl.items.forEach((item, itemIdx) => {
+                    itemsMarkup += `
+                        <div class="list-item-row menu-item-row" data-idx="${itemIdx}" style="display: grid; grid-template-columns: 1fr 1fr 1.2fr 24px; gap: 4px; align-items: center; margin-bottom: 4px;">
+                            <input type="text" class="prop-menu-item-id" placeholder="ID" value="${item.id}" style="font-size:10.5px; padding:2px;">
+                            <input type="text" class="prop-menu-item-label" placeholder="텍스트" value="${item.label}" style="font-size:10.5px; padding:2px;">
+                            <input type="text" class="prop-menu-item-action" placeholder="onAction" value="${item.onAction || ''}" style="font-size:10.5px; padding:2px;">
+                            <button type="button" class="overlay-btn delete menu-item-del-btn" style="display:flex; width:22px; height:22px; align-items:center; justify-content:center; padding:0;">✖</button>
+                        </div>
+                    `;
+                });
+            }
+
+            extraFields = `
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>서브 메뉴 항목 관리 (ID / 레이블명 / 실행 매크로명)</label>
+                    <div class="list-editor">
+                        <div class="list-editor-items" id="prop-menu-items-container">
+                            ${itemsMarkup}
+                        </div>
+                        <button type="button" class="btn-secondary" id="btn-add-menu-item" style="padding:3px 8px; font-size:10px; align-self:flex-start; margin-top:4px;">+ 서브 메뉴 추가</button>
+                    </div>
+                </div>
+            `;
         }
 
         editorBody.innerHTML = `
@@ -1581,10 +1670,11 @@ function renderPropertyEditor() {
                 ${callbackMarkup}
                 ${sizeMarkup}
                 ${iconMarkup}
+                ${layoutMarkup}
                 ${extraFields}
                 
                 <!-- VBA Code Connector & Textarea Editor -->
-                <div class="vba-connect-section" style="${['box', 'buttongroup', 'labelcontrol'].includes(ctrl.type) ? 'display: none;' : ''}">
+                <div class="vba-connect-section" style="${ctrl.type === 'labelcontrol' ? 'display: none;' : ''}">
                     <div class="vba-connect-left">
                         <label>VBA 코드 프리셋 연결</label>
                         <select id="prop-ctrl-vba-preset" style="width: 100%;">
@@ -1603,11 +1693,11 @@ function renderPropertyEditor() {
             </div>
         `;
 
-        if (['combobox', 'dropdown', 'gallery'].includes(ctrl.type)) {
+        if (['combobox', 'dropdown'].includes(ctrl.type)) {
             document.getElementById("btn-add-drop-item").addEventListener("click", () => {
                 if (!ctrl.items) ctrl.items = [];
                 const nextId = ctrl.items.length + 1;
-                ctrl.items.push({ id: `${ctrl.id}_item${nextId}`, label: `새 옵션 ${nextId}` });
+                ctrl.items.push({ id: `${ctrl.id}_item${nextId}`, label: `옵션 ${nextId}` });
                 updateRibbonUI();
             });
 
@@ -1621,11 +1711,57 @@ function renderPropertyEditor() {
             });
         }
 
+        if (ctrl.type === 'menu') {
+            document.getElementById("btn-add-menu-item").addEventListener("click", () => {
+                if (!ctrl.items) ctrl.items = [];
+                const nextId = ctrl.items.length + 1;
+                ctrl.items.push({ 
+                    id: `${ctrl.id}_sub${nextId}`, 
+                    label: `서브 명령 ${nextId}`, 
+                    onAction: `${ctrl.id}_sub${nextId}_Click` 
+                });
+                updateRibbonUI();
+            });
+
+            document.querySelectorAll(".menu-item-del-btn").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    const row = btn.closest(".menu-item-row");
+                    const idx = parseInt(row.getAttribute("data-idx"));
+                    ctrl.items.splice(idx, 1);
+                    updateRibbonUI();
+                });
+            });
+        }
+
+        if (isSmallCtrl) {
+            document.getElementById("prop-ctrl-startnewcolumn").addEventListener("change", (e) => {
+                ctrl.startNewColumn = e.target.checked;
+                updateRibbonUI();
+            });
+        }
+
         if (hasIcon) {
             document.getElementById("btn-open-icon-picker").addEventListener("click", () => {
                 currentIconTargetControl = ctrl;
                 openIconPicker();
             });
+        }
+
+        if (ctrl.type === 'box') {
+            const boxStyleSelect = document.getElementById("prop-ctrl-boxstyle");
+            if (boxStyleSelect) {
+                boxStyleSelect.addEventListener("change", (e) => {
+                    ctrl.boxStyle = e.target.value;
+                    updateRibbonUI();
+                });
+            }
+            const stackLimitSelect = document.getElementById("prop-ctrl-stacklimit");
+            if (stackLimitSelect) {
+                stackLimitSelect.addEventListener("change", (e) => {
+                    ctrl.stackLimit = parseInt(e.target.value, 10);
+                    updateRibbonUI();
+                });
+            }
         }
     }
 }
@@ -1661,6 +1797,7 @@ function bindPropertyFields() {
             if (targetId === "prop-ctrl-id") ctrl.id = e.target.value;
             if (targetId === "prop-ctrl-label") ctrl.label = e.target.value;
             if (targetId === "prop-ctrl-boxstyle") ctrl.boxStyle = e.target.value;
+            if (targetId === "prop-ctrl-stacklimit") ctrl.stackLimit = parseInt(e.target.value, 10);
             if (targetId === "prop-ctrl-onaction") {
                 const oldAction = ctrl.onAction || "";
                 const newAction = e.target.value;
@@ -1740,6 +1877,8 @@ function bindPropertyFields() {
 
             if (e.target.name === "btn-size") {
                 ctrl.size = e.target.value;
+                updateRibbonUI();
+                return;
             }
 
             if (e.target.classList.contains("prop-drop-item-id") || e.target.classList.contains("prop-drop-item-label")) {
@@ -1750,6 +1889,19 @@ function bindPropertyFields() {
                     ctrl.items[itemIdx].id = e.target.value;
                 } else {
                     ctrl.items[itemIdx].label = e.target.value;
+                }
+            }
+
+            if (e.target.classList.contains("prop-menu-item-id") || e.target.classList.contains("prop-menu-item-label") || e.target.classList.contains("prop-menu-item-action")) {
+                const row = e.target.closest(".menu-item-row");
+                const itemIdx = parseInt(row.getAttribute("data-idx"));
+                
+                if (e.target.classList.contains("prop-menu-item-id")) {
+                    ctrl.items[itemIdx].id = e.target.value;
+                } else if (e.target.classList.contains("prop-menu-item-label")) {
+                    ctrl.items[itemIdx].label = e.target.value;
+                } else if (e.target.classList.contains("prop-menu-item-action")) {
+                    ctrl.items[itemIdx].onAction = e.target.value;
                 }
             }
         }
@@ -1813,36 +1965,16 @@ function compileSingleControlXml(ctrl, indent) {
             });
         }
         xml += `${indent}</dropDown>\n`;
-    } else if (ctrl.type === 'gallery') {
-        xml += `${indent}<gallery id="${ctrl.id}" label="${escapeXml(ctrl.label)}"${sizeAttr}${imageAttr} onAction="${ctrl.onAction}">\n`;
-        if (ctrl.items) {
-            ctrl.items.forEach(item => {
-                xml += `${indent}  <item id="${item.id}" label="${escapeXml(item.label)}" />\n`;
-            });
-        }
-        xml += `${indent}</gallery>\n`;
-    } else if (ctrl.type === 'box') {
-        xml += `${indent}<box id="${ctrl.id}" boxStyle="${ctrl.boxStyle || 'horizontal'}">\n`;
-        xml += `${indent}  <button id="${ctrl.id}_inner" label="상자 내부 예시 단추" />\n`;
-        xml += `${indent}</box>\n`;
-    } else if (ctrl.type === 'buttongroup') {
-        xml += `${indent}<buttonGroup id="${ctrl.id}">\n`;
-        xml += `${indent}  <button id="${ctrl.id}_btn1" label="그룹 단추 1" imageMso="HappyFace" />\n`;
-        xml += `${indent}  <button id="${ctrl.id}_btn2" label="그룹 단추 2" imageMso="Heart" />\n`;
-        xml += `${indent}</buttonGroup>\n`;
     } else if (ctrl.type === 'labelcontrol') {
         xml += `${indent}<labelControl id="${ctrl.id}" label="${escapeXml(ctrl.label)}" />\n`;
     } else if (ctrl.type === 'menu') {
         xml += `${indent}<menu id="${ctrl.id}" label="${escapeXml(ctrl.label)}"${sizeAttr}${imageAttr}>\n`;
-        xml += `${indent}  <button id="${ctrl.id}_sub1" label="서브 도구 1" onAction="btn_SubTool_Click" />\n`;
+        if (ctrl.items) {
+            ctrl.items.forEach(item => {
+                xml += `${indent}  <button id="${item.id}" label="${escapeXml(item.label)}" onAction="${item.onAction || ''}" />\n`;
+            });
+        }
         xml += `${indent}</menu>\n`;
-    } else if (ctrl.type === 'splitbutton') {
-        xml += `${indent}<splitButton id="${ctrl.id}">\n`;
-        xml += `${indent}  <button id="${ctrl.id}_btn" label="${escapeXml(ctrl.label)}"${imageAttr} onAction="${ctrl.onAction}" />\n`;
-        xml += `${indent}  <menu id="${ctrl.id}_menu">\n`;
-        xml += `${indent}    <button id="${ctrl.id}_sub" label="서브 구성 도구" onAction="btn_SubTool_Click" />\n`;
-        xml += `${indent}  </menu>\n`;
-        xml += `${indent}</splitButton>\n`;
     } else if (ctrl.type === 'togglebutton') {
         xml += `${indent}<toggleButton id="${ctrl.id}" label="${escapeXml(ctrl.label)}"${sizeAttr} onAction="${ctrl.onAction}" />\n`;
     } else {
@@ -1863,7 +1995,13 @@ function compileCustomUiXml() {
             xml += `      <!-- 표준 탭 확장 주입 -->\n`;
             xml += `      <tab idMso="${tab.idMso}">\n`;
         } else {
-            xml += `      <tab id="${tab.id}" label="${escapeXml(tab.label)}">\n`;
+            let posAttr = "";
+            if (tab.positionType === 'before' && tab.positionTarget) {
+                posAttr = ` insertBeforeMso="${tab.positionTarget}"`;
+            } else if (tab.positionType === 'after' && tab.positionTarget) {
+                posAttr = ` insertAfterMso="${tab.positionTarget}"`;
+            }
+            xml += `      <tab id="${tab.id}" label="${escapeXml(tab.label)}"${posAttr}>\n`;
         }
 
         if (tab.groups) {
@@ -1871,48 +2009,40 @@ function compileCustomUiXml() {
                 xml += `        <group id="${group.id}" label="${escapeXml(group.label)}">\n`;
                 
                 if (group.controls && group.controls.length > 0) {
-                    // Group controls into layout columns (consecutive small controls stack up to 3)
-                    const columns = [];
-                    let currentColumn = [];
-                    
-                    group.controls.forEach((ctrl) => {
-                        const isSmall = ctrl.type !== 'separator' && ctrl.size !== 'large';
-                        if (isSmall) {
-                            currentColumn.push(ctrl);
-                            if (currentColumn.length === 3) {
-                                columns.push({ type: 'vertical', controls: currentColumn });
-                                currentColumn = [];
+                    let i = 0;
+                    while (i < group.controls.length) {
+                        const ctrl = group.controls[i];
+                        
+                        if (ctrl.type === 'box') {
+                            const stackLimit = ctrl.stackLimit || 3;
+                            const children = [];
+                            let j = i + 1;
+                            while (j < group.controls.length && children.length < stackLimit) {
+                                const candidate = group.controls[j];
+                                if (candidate.type === 'separator' || candidate.type === 'box' || candidate.type === 'buttongroup') {
+                                    break;
+                                }
+                                children.push(candidate);
+                                j++;
                             }
-                        } else {
-                            if (currentColumn.length > 0) {
-                                columns.push({ type: 'vertical', controls: currentColumn });
-                                currentColumn = [];
-                            }
-                            columns.push({ type: 'single', control: ctrl });
-                        }
-                    });
-                    if (currentColumn.length > 0) {
-                        columns.push({ type: 'vertical', controls: currentColumn });
-                    }
-
-                    // Render columns into XML output
-                    columns.forEach(col => {
-                        if (col.type === 'vertical') {
-                            xml += `          <box boxStyle="vertical">\n`;
-                            col.controls.forEach(c => {
-                                xml += compileSingleControlXml(c, "            ");
+                            
+                            xml += `          <box id="${ctrl.id}" boxStyle="${ctrl.boxStyle || 'vertical'}">\n`;
+                            children.forEach(child => {
+                                xml += compileSingleControlXml(child, "            ");
                             });
                             xml += `          </box>\n`;
+                            
+                            i = j;
                         } else {
-                            xml += compileSingleControlXml(col.control, "          ");
+                            xml += compileSingleControlXml(ctrl, "          ");
+                            i++;
                         }
-                    });
+                    }
                 }
-
+                
                 xml += `        </group>\n`;
             });
         }
-
         xml += `      </tab>\n`;
     });
 
@@ -1921,6 +2051,7 @@ function compileCustomUiXml() {
     xml += `</customUI>`;
     return xml;
 }
+
 
 function compileVbaCallbacks() {
     let vba = `' =======================================================\n`;
@@ -1935,6 +2066,20 @@ function compileVbaCallbacks() {
             tab.groups.forEach(group => {
                 if (group.controls) {
                     group.controls.forEach(ctrl => {
+                        if (ctrl.type === 'menu') {
+                            if (ctrl.items) {
+                                ctrl.items.forEach(sub => {
+                                    if (!sub.onAction || generatedActions.has(sub.onAction)) return;
+                                    generatedActions.add(sub.onAction);
+                                    vba += `' ${ctrl.label} > ${sub.label} 버튼 클릭 콜백\n`;
+                                    vba += `Sub ${sub.onAction}(control As IRibbonControl)\n`;
+                                    vba += `    MsgBox "${sub.label} 기능을 실행합니다.", vbInformation, "엑셀 리본 빌더"\n`;
+                                    vba += `End Sub\n\n`;
+                                });
+                            }
+                            return;
+                        }
+
                         if (ctrl.type === 'separator' || ctrl.type === 'labelcontrol' || ctrl.type === 'box' || ctrl.type === 'buttongroup' || !ctrl.onAction) return;
                         if (generatedActions.has(ctrl.onAction)) return;
                         generatedActions.add(ctrl.onAction);
@@ -1956,11 +2101,6 @@ function compileVbaCallbacks() {
                                 vba += `' ${ctrl.label} (선택값 변경 시 실행)\n`;
                                 vba += `Sub ${ctrl.onAction}(control As IRibbonControl, textOrId As String, Optional index As Integer)\n`;
                                 vba += `    MsgBox "선택된 값: " & textOrId, vbInformation, "엑셀 리본 빌더"\n`;
-                                vba += `End Sub\n\n`;
-                            } else if (ctrl.type === 'gallery') {
-                                vba += `' ${ctrl.label} (갤러리 선택 변경 시 실행)\n`;
-                                vba += `Sub ${ctrl.onAction}(control As IRibbonControl, id As String, index As Integer)\n`;
-                                vba += `    MsgBox "갤러리 선택: " & id, vbInformation, "엑셀 리본 빌더"\n`;
                                 vba += `End Sub\n\n`;
                             } else if (ctrl.type === 'togglebutton') {
                                 vba += `' ${ctrl.label} (토글 상태 변경 시 실행)\n`;
