@@ -1,0 +1,16 @@
+# Excel Custom Ribbon Creator - Git Ignore Rules
+# ==============================================
+
+# Excel temporary lock files
+~$*
+*.tmp
+
+# User-specific workbook test files
+extract_icons.xlsm
+
+# Local icon cache (BMP/PNG images generated locally)
+# Users generate these locally using extract_icons.ps1
+imageMSO/*.bmp
+imageMSO/*.png
+# But keep the folder itself in git if needed, or ignore it completely
+imageMSO/

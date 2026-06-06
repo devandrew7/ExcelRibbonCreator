@@ -13,7 +13,7 @@
     <!-- JSZip Library for Client-side packaging -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
     <!-- Core App JS Scripts (defer is important to load after DOM) -->
-    <script src="icons_map.js" defer></script>
+    <script src="image_mso_list.js" defer></script>
     <script src="icons.js" defer></script>
     <script src="zip-generator.js" defer></script>
     <script src="app.js" defer></script>
@@ -31,9 +31,33 @@
                     <p>노코딩 기반 엑셀 맞춤형 리본 메뉴 및 추가기능 생성기</p>
                 </div>
             </div>
-            <div class="header-actions">
-                <button class="btn-secondary" id="btn-demo-workplace">📂 데모 1: 자동화 종합 세트</button>
-                <button class="btn-secondary" id="btn-demo-intrusion">📂 데모 2: 홈 탭 주입 확장</button>
+            <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+                <!-- Schema Version Selector -->
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 11px; color: #a3cfbb; font-weight: 500;">스키마 버전:</span>
+                    <select id="schema-version-selector" style="background: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.25); padding: 4px 8px; border-radius: 4px; font-size: 11px; outline: none; cursor: pointer; font-family: var(--font-sans);">
+                        <option value="customUI14" style="color: #333;" selected>Office 2010+ (customUI14)</option>
+                        <option value="customUI" style="color: #333;">Office 2007 (customUI)</option>
+                    </select>
+                </div>
+                <!-- RibbonX Template Selector -->
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 11px; color: #a3cfbb; font-weight: 500;">샘플 템플릿:</span>
+                    <select id="template-preset-selector" style="background: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.25); padding: 4px 8px; border-radius: 4px; font-size: 11px; outline: none; cursor: pointer; font-family: var(--font-sans);">
+                        <option value="" style="color: #333;" selected>-- 템플릿 선택 --</option>
+                        <optgroup label="RibbonX 공식 샘플" style="color: #333;">
+                            <option value="custom_tab" style="color: #333;">Simple Custom Tab</option>
+                            <option value="excel_custom_tab" style="color: #333;">Excel - A Custom Tab</option>
+                            <option value="custom_outspace" style="color: #333;">Custom OutSpace (Backstage)</option>
+                            <option value="repurpose" style="color: #333;">Repurpose (명령 재정의)</option>
+                            <option value="word_group_insert" style="color: #333;">Word - Group on Insert Tab</option>
+                        </optgroup>
+                        <optgroup label="업무 자동화 데모" style="color: #333;">
+                            <option value="demo_workplace" style="color: #333;">데모 1: 자동화 종합 세트</option>
+                            <option value="demo_intrusion" style="color: #333;">데모 2: 홈 탭 주입 확장</option>
+                        </optgroup>
+                    </select>
+                </div>
                 <button class="btn-secondary" id="btn-clear-all" style="background-color: rgba(239, 68, 68, 0.1); color: #fff; border-color: rgba(255, 255, 255, 0.25);">🧹 전체 초기화</button>
             </div>
         </header>
@@ -43,11 +67,15 @@
             
             <!-- 1. Left Sidebar: Compact Component Palette -->
             <div class="side-panel">
-                <div class="panel-header">
-                    <span>Palette</span>
-                    <span style="font-size: 10px; color: var(--text-secondary);">요소 클릭 추가</span>
+                <div class="panel-header" style="padding: 6px 12px; display: flex; flex-direction: column; gap: 4px;">
+                    <div class="sidebar-tabs" style="display: flex; gap: 4px; width: 100%;">
+                        <button class="sidebar-tab-btn active" id="tab-btn-palette" style="flex: 1; padding: 4px; font-size: 11px; border: 1px solid var(--border-color); background: #fdfdfd; color: var(--excel-green-primary); cursor: pointer; border-radius: 4px; font-weight: bold; transition: var(--transition-fast);">팔레트</button>
+                        <button class="sidebar-tab-btn" id="tab-btn-explorer" style="flex: 1; padding: 4px; font-size: 11px; border: 1px solid transparent; background: none; color: var(--text-secondary); cursor: pointer; border-radius: 4px; font-weight: normal; transition: var(--transition-fast);">문서 탐색기</button>
+                    </div>
                 </div>
-                <div class="panel-content" style="padding: 12px; display:flex; flex-direction:column; gap: 12px;">
+                
+                <!-- Tab Content 1: Component Palette -->
+                <div class="panel-content" id="sidebar-palette-content" style="padding: 12px; display:flex; flex-direction:column; gap: 12px;">
                     
                     <div class="palette-section-title">기본 계층구조 (Structure)</div>
                     <div class="component-grid">
@@ -115,6 +143,31 @@
                                 <h4>메뉴 (RibbonMenu)</h4>
                             </div>
                         </div>
+                        <div class="palette-item" id="add-dynamicmenu" title="VBA 콜백을 통해 런타임에 동적으로 서브 메뉴를 생성하는 컨트롤입니다." draggable="true" data-type="dynamicmenu">
+                            <div class="palette-item-icon">⚡</div>
+                            <div class="palette-item-details">
+                                <h4>동적 메뉴 (RibbonDynamicMenu)</h4>
+                            </div>
+                        </div>
+
+                        <div class="palette-item" id="add-gallery" title="색상 팔레트나 이미지 등을 그리드로 배치하여 선택할 수 있는 갤러리입니다." draggable="true" data-type="gallery">
+                            <div class="palette-item-icon">🎨</div>
+                            <div class="palette-item-details">
+                                <h4>갤러리 (RibbonGallery)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-buttongroup" title="소형 단추들을 한 줄로 묶어 깔끔하게 나열하는 그룹입니다." draggable="true" data-type="buttongroup">
+                            <div class="palette-item-icon">⛓️</div>
+                            <div class="palette-item-details">
+                                <h4>버튼 그룹 (RibbonButtonGroup)</h4>
+                            </div>
+                        </div>
+                        <div class="palette-item" id="add-splitbutton" title="기본 실행 단추와 우측 하위 옵션 드롭다운이 결합된 분할 단추입니다." draggable="true" data-type="splitbutton">
+                            <div class="palette-item-icon">🥞</div>
+                            <div class="palette-item-details">
+                                <h4>분할 버튼 (RibbonSplitButton)</h4>
+                            </div>
+                        </div>
                         <div class="palette-item" id="add-labelcontrol" title="리본바 내에 고정 텍스트 문구나 안내를 출력합니다." draggable="true" data-type="labelcontrol">
                             <div class="palette-item-icon">ℹ️</div>
                             <div class="palette-item-details">
@@ -130,6 +183,14 @@
                     </div>
 
                 </div>
+                
+                <!-- Tab Content 2: Document Explorer (Hidden by default) -->
+                <div class="panel-content" id="sidebar-explorer-content" style="padding: 12px; display: none; flex-direction: column; gap: 12px; background-color: var(--bg-secondary);">
+                    <div class="explorer-tree" id="document-explorer-tree">
+                        <!-- Rendered dynamically by JS -->
+                    </div>
+                </div>
+
             </div>
 
             <!-- 2. Center: Simulated Excel & Property Panel & Real-time Codes (Centralized Layout) -->
@@ -197,9 +258,18 @@
 
                     <!-- XML Box -->
                     <div class="code-panel active" id="panel-xml">
+                        <!-- Validation Alert Banner -->
+                        <div class="validation-banner" id="xml-validation-banner" style="display: none; padding: 8px 12px; border-radius: 4px; font-size: 11px; margin-bottom: 8px; font-weight: 500; align-items: center; justify-content: space-between; gap: 8px;">
+                            <span class="validation-msg" id="xml-validation-msg">XML 검증 대기 중...</span>
+                            <button class="close-banner-btn" id="btn-close-validation-banner" style="background:none; border:none; cursor:pointer; font-size:10px; color:inherit; padding: 0 4px;">✖</button>
+                        </div>
                         <div class="code-box-wrapper">
-                            <button class="copy-btn" id="copy-xml">📋 XML 복사</button>
-                            <textarea class="code-box" id="code-xml-box" readonly></textarea>
+                            <div class="code-box-header-actions" style="position: absolute; top: 4px; right: 4px; z-index: 10; display: flex; gap: 4px;">
+                                <button class="copy-btn" id="btn-validate-xml" style="position: static; padding: 4px 8px; font-size: 10.5px; background-color: var(--excel-green-primary); color: white; border: 1px solid var(--excel-green-dark);">✔️ 유효성 검사</button>
+                                <button class="copy-btn" id="btn-apply-xml" style="position: static; padding: 4px 8px; font-size: 10.5px; background-color: #2b579a; color: white; border: 1px solid #1e3f7a;">⚡ 시뮬레이터 적용</button>
+                                <button class="copy-btn" id="copy-xml" style="position: static; padding: 4px 8px; font-size: 10.5px;">📋 XML 복사</button>
+                            </div>
+                            <textarea class="code-box" id="code-xml-box" placeholder="여기에 CustomUI XML 코드를 직접 수정하거나 작성한 후 [시뮬레이터 적용]을 클릭하세요."></textarea>
                         </div>
                     </div>
 
@@ -274,19 +344,21 @@
     <div class="modal-overlay" id="icon-picker-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>오피스 및 이모지 아이콘 라이브러리 검색</h3>
+                <h3>오피스 내장 아이콘 (imageMso) 라이브러리 검색</h3>
                 <button class="close-modal">✖</button>
             </div>
-            
-            <!-- Source Selector Tabs (MSO vs EMOJI only!) -->
-            <div class="picker-source-tabs">
-                <button class="picker-source-btn active" data-source="mso">Excel 기본 아이콘 (imageMso)</button>
-                <button class="picker-source-btn" data-source="emoji">이모지 기호 아이콘 (Emoji)</button>
+            <!-- Local Extraction Guidance Notice -->
+            <div class="local-extraction-notice">
+                <span>💡 <strong>3,200+개 오피스 내장 아이콘 미리보기 활성화 방법</strong>: 로컬 터미널에서 아래 명령을 실행해 모든 아이콘 이미지(PNG)를 추출하면 시뮬레이터에서 실시간 고해상도 미리보기가 가능해집니다.</span>
+                <code>powershell -ExecutionPolicy Bypass -File .\extract_icons.ps1</code>
             </div>
-
-            <!-- Search input -->
-            <div class="modal-search-bar">
-                <input type="text" id="modal-icon-search" placeholder="영문 명칭 혹은 한글 의미 키워드를 입력해 아이콘을 실시간 검색하세요...">
+            <!-- Search input & Manual Direct Entry -->
+            <div class="modal-search-bar" style="display: flex; gap: 8px;">
+                <input type="text" id="modal-icon-search" placeholder="영문 명칭 혹은 한글 의미 키워드를 입력해 아이콘을 실시간 검색하세요..." style="flex: 2;">
+                <div class="manual-icon-entry" style="display: flex; gap: 4px; flex: 1; min-width: 250px; align-items: stretch;">
+                    <input type="text" id="modal-manual-icon-input" placeholder="원하는 imageMso 직접 입력..." style="font-size: 13px; flex-grow: 1;">
+                    <button type="button" class="btn-primary" id="btn-apply-manual-icon" style="padding: 8px 12px; font-size: 13px; font-weight: 500; background: var(--excel-green-primary); color: white; border: none; border-radius: 4px; cursor: pointer;">적용</button>
+                </div>
             </div>
 
             <!-- Dynamic Sub-Tabs Container (Fills sub-tabs recursively for folders/emojis) -->

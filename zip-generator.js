@@ -11,7 +11,7 @@ class ExcelZipGenerator {
      * @param {string} fileType The output file type: 'xlsm' (workbook) or 'xlam' (addin).
      * @returns {Promise<Blob>} The generated file binary Blob.
      */
-    static async generate(customUiXml, fileType = 'xlsm') {
+    static async generate(customUiXml, fileType = 'xlsm', schemaVersion = 'customUI14') {
         if (typeof JSZip === 'undefined') {
             throw new Error("JSZip 라이브러리가 로드되지 않았습니다. 인터넷 연결을 확인해주세요.");
         }
@@ -24,6 +24,13 @@ class ExcelZipGenerator {
             ? "application/vnd.ms-excel.addin.macroEnabled.main+xml" 
             : "application/vnd.ms-excel.sheet.macroEnabled.main+xml";
 
+        // Determine schema path and relationship attributes
+        const isOffice2007 = schemaVersion === 'customUI';
+        const customUiPath = isOffice2007 ? "customUI/customUI.xml" : "customUI/customUI14.xml";
+        const relsType = isOffice2007
+            ? "http://schemas.microsoft.com/office/2006/relationships/ui/extensibility"
+            : "http://schemas.microsoft.com/office/2007/relationships/ui/extensibility";
+
         // 2. [Content_Types].xml
         const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
@@ -32,7 +39,7 @@ class ExcelZipGenerator {
   <Override PartName="/xl/workbook.xml" ContentType="${workbookContentType}"/>
   <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-  <Override PartName="/customUI/customUI14.xml" ContentType="application/xml"/>
+  <Override PartName="/${customUiPath}" ContentType="application/xml"/>
 </Types>`;
         zip.file("[Content_Types].xml", contentTypesXml);
 
@@ -40,7 +47,7 @@ class ExcelZipGenerator {
         const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
-  <Relationship Id="rIdCustomUI" Type="http://schemas.microsoft.com/office/2007/relationships/ui/extensibility" Target="customUI/customUI14.xml"/>
+  <Relationship Id="rIdCustomUI" Type="${relsType}" Target="${customUiPath}"/>
 </Relationships>`;
         zip.file("_rels/.rels", relsXml);
 
@@ -95,8 +102,8 @@ class ExcelZipGenerator {
 </styleSheet>`;
         zip.file("xl/styles.xml", stylesXml);
 
-        // 8. customUI/customUI14.xml
-        zip.file("customUI/customUI14.xml", customUiXml);
+        // 8. customUI path
+        zip.file(customUiPath, customUiXml);
 
         // Generate the ZIP file as a binary blob
         return await zip.generateAsync({ type: "blob" });

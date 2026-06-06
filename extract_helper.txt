@@ -1,0 +1,115 @@
+' Excel Custom Ribbon Creator - imageMso Icon Extractor VBA Workaround
+' ===================================================================
+' This macro extracts all 3,245 standard icons directly from Excel UI
+' and saves them as BMP files in your project directory.
+'
+' INSTRUCTIONS:
+' 1. Open Microsoft Excel manually.
+' 2. Save a blank workbook as a Macro-Enabled Workbook (*.xlsm) in the
+'    project folder: D:\Antigravity\ExcelRibbonCreator
+' 3. Press Alt + F11 to open the VBA Editor.
+' 4. Click Insert -> Module, and paste this entire code block.
+' 5. Click inside the "ExtractIconsToBmp" subroutine and press F5 (Run).
+' 6. Wait for completion (takes ~30-60 seconds).
+' 7. Close Excel and run the powershell script to convert BMPs to PNGs:
+'    powershell -ExecutionPolicy Bypass -File .\extract_icons.ps1
+' ===================================================================
+
+Sub ExtractIconsToBmp()
+    Dim basePath As String
+    basePath = ActiveWorkbook.Path
+    
+    Dim listPath As String
+    listPath = basePath & "\image_mso_list.js"
+    
+    Dim outPath As String
+    outPath = basePath & "\imageMSO"
+    
+    Dim fso As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    ' Check if file exists in the directory
+    If Not fso.FileExists(listPath) Then
+        MsgBox "Error: image_mso_list.js not found in: " & basePath & vbCrLf & _
+               "Please save this workbook in your project folder before running.", vbCritical, "File Not Found"
+        Exit Sub
+    End If
+    
+    If Not fso.FolderExists(outPath) Then
+        fso.CreateFolder(outPath)
+    End If
+    
+    ' Read list content
+    Dim ts As Object
+    Set ts = fso.OpenTextFile(listPath, 1, False, -2)
+    Dim content As String
+    content = ts.ReadAll
+    ts.Close
+    
+    ' Extract Mso IDs using Regex
+    Dim regEx As Object
+    Set regEx = CreateObject("VBScript.RegExp")
+    regEx.Global = True
+    regEx.IgnoreCase = True
+    regEx.Pattern = "['""]([^'""]+)['""]"
+    
+    Dim matches As Object
+    Set matches = regEx.Execute(content)
+    
+    Dim confirm As Integer
+    confirm = MsgBox("Found " & matches.Count & " potential icons in list." & vbCrLf & _
+                     "Start extracting? (Existing files will be skipped)", vbYesNo + vbQuestion, "Confirm Extraction")
+    If confirm <> vbYes Then Exit Sub
+    
+    Dim match As Object
+    Dim idMso As String
+    Dim destBmp As String
+    Dim destPng As String
+    Dim img As Object
+    Dim extractedCount As Long
+    Dim skippedCount As Long
+    Dim failedCount As Long
+    Dim total As Long
+    
+    extractedCount = 0
+    skippedCount = 0
+    failedCount = 0
+    total = 0
+    
+    Application.ScreenUpdating = False
+    Application.DisplayAlerts = False
+    
+    For Each match In matches
+        idMso = match.SubMatches(0)
+        If idMso <> "ALL_IMAGE_MSO_LIST" And Len(idMso) > 0 Then
+            total = total + 1
+            destBmp = outPath & "\" & idMso & ".bmp"
+            destPng = outPath & "\" & idMso & ".png"
+            
+            ' Skip if PNG or BMP already exists
+            If fso.FileExists(destBmp) Or fso.FileExists(destPng) Then
+                skippedCount = skippedCount + 1
+            Else
+                On Error Resume Next
+                Set img = Application.CommandBars.GetImageMso(idMso, 32, 32)
+                If Err.Number = 0 And Not img Is Nothing Then
+                    stdole.SavePicture img, destBmp
+                    extractedCount = extractedCount + 1
+                Else
+                    failedCount = failedCount + 1
+                End If
+                On Error GoTo 0
+            End If
+        End If
+    Next match
+    
+    Application.ScreenUpdating = True
+    Application.DisplayAlerts = True
+    
+    MsgBox "Extraction Complete!" & vbCrLf & vbCrLf & _
+           "Total Processed: " & total & vbCrLf & _
+           "Extracted BMPs: " & extractedCount & vbCrLf & _
+           "Skipped: " & skippedCount & vbCrLf & _
+           "Failed/Missing: " & failedCount & vbCrLf & vbCrLf & _
+           "Next step: Run 'powershell -ExecutionPolicy Bypass -File .\extract_icons.ps1' in the project directory to convert them to PNG.", vbInformation, "Done"
+End Sub
